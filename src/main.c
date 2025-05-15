@@ -138,8 +138,7 @@ int main(void) {
 
     /******************/
     Chip_SCU_PinMuxSet(LED_1_PORT, LED_1_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | LED_1_FUNC);
-    Chip_GPIO_SetPinState(LPC_GPIO_PORT, LED_1_GPIO, LED_1_BIT, false);
-    Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, LED_1_GPIO, LED_1_BIT, true);
+    digital_output_p led_1 = DigitalOutputCreate(LED_1_GPIO, LED_1_BIT);
 
     Chip_SCU_PinMuxSet(LED_2_PORT, LED_2_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | LED_2_FUNC);
     digital_output_p led_2 = DigitalOutputCreate(LED_2_GPIO, LED_2_BIT);
@@ -169,7 +168,7 @@ int main(void) {
 
         current_state = (Chip_GPIO_ReadPortBit(LPC_GPIO_PORT, TEC_2_GPIO, TEC_2_BIT) == 0);
         if ((current_state) && (!last_state)) {
-            Chip_GPIO_SetPinToggle(LPC_GPIO_PORT, LED_1_GPIO, LED_1_BIT);
+            DigitalOutputToggle(led_1);
         }
         last_state = current_state;
 
