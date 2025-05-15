@@ -106,9 +106,11 @@ digital_output_p DigitalOutputCreate(uint8_t port, uint32_t pin) {
 }
 
 void DigitalOutputActivate(digital_output_p self) {
+    Chip_GPIO_SetPinState(LPC_GPIO_PORT, self->port, self->pin, true);
 }
 
 void DigitalOutputDeactivate(digital_output_p self) {
+    Chip_GPIO_SetPinState(LPC_GPIO_PORT, self->port, self->pin, false);
 }
 
 void DigitalOutputToggle(digital_output_p self) {
