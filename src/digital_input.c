@@ -28,7 +28,18 @@ SPDX-License-Identifier: MIT
 
 /* === Macros definitions ========================================================================================== */
 
+#ifndef DIGITAL_INPUT_MAX_INSTANCE
+#define DIGITAL_INPUT_MAX_INSTANCE 3
+#endif
+
 /* === Private data type declarations ============================================================================== */
+
+//! Estructura que representa una entrada digital
+struct digital_input_s {
+    uint8_t port;  //!< Puerto al que pertenece la entrada digital
+    uint32_t pin;  //!< Pin al que pertenece la entrada digital
+    bool inverted; //!< Indica si la entrada digital tiene logica invertida
+};
 
 /* === Private function declarations =============================================================================== */
 

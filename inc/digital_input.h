@@ -26,6 +26,9 @@ SPDX-License-Identifier: MIT
 
 /* === Headers files inclusions ==================================================================================== */
 
+#include <stdint.h>
+#include <stdbool.h>
+
 /* === Header for C++ compatibility ================================================================================ */
 
 #ifdef __cplusplus
@@ -36,11 +39,66 @@ extern "C" {
 
 /* === Public data type declarations =============================================================================== */
 
+//! Referencia al objeto entrada digital
 typedef struct digital_input_s * digital_input_p;
+
+//! Tipo de dato de cambios en el estado de una entrada digital
+typedef enum digital_input_changes_e {
+    DIGITAL_INPUT_WAS_ACTIVATED = 1,
+    DIGITAL_INPUT_NO_CHANGE = 0,
+    DIGITAL_INPUT_WAS_DEACTIVATED = -1,
+} digital_input_changes_t;
 
 /* === Public variable declarations ================================================================================ */
 
 /* === Public function declarations ================================================================================ */
+
+/**
+ * @brief Funcion para crear una entrada digital
+ *
+ * @param port Puerto de de la entrada digital
+ * @param pin Pin de la entrada digital
+ * @param inverted Indica si la logica de la entrada digital es invertida
+ * @return digital_input_p Referencia de la entrada digital
+ */
+digital_input_p DigitalInputCreate(uint8_t port, uint32_t pin, bool inverted);
+
+/**
+ * @brief Funcion para preguntarle a la entrada digital si está activa
+ *
+ * @param input Referencia a la entrada digital
+ * @return true Si la entrada esta activa
+ * @return false Si la entrada esta inactiva
+ */
+bool DigitalInputGetIsActive(digital_input_p input);
+
+/**
+ * @brief Funcion para preguntarle a la entrada digital si su estado anterior era activado
+ *
+ * @param input Referencia a la entrada digital
+ * @return true Si el estado anterior de la entrada digital era activado
+ * @return false Si el estado anterior de la entrada digital era desactivado
+ */
+bool DigitalInputWasActivated(digital_input_p input);
+
+/**
+ * @brief Funcion para preguntarle a la entrada digital si su estado anterior era desactivado
+ *
+ * @param input Referencia a la entrada digital
+ * @return true Si el estado anterior de la entrada digital era desactivado
+ * @return false Si el estado anterior de la entrada digital era activado
+ */
+bool DigitalInputWasDeactivated(digital_input_p input);
+
+/**
+ * @brief Funcion para preguntarle a la entrada digital si cambió
+ *
+ * Devuelve....
+ *
+ * @param input
+ * @return digital_input_changes_t Respuesta
+ */
+digital_input_changes_t DigitalInputWasChanged(digital_input_p input);
 
 /* === End of conditional blocks =================================================================================== */
 
