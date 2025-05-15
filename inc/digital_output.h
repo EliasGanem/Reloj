@@ -48,8 +48,8 @@ typedef struct digital_output_s * digital_output_p;
 /**
  * @brief Funcion para crear una Salida Digital
  *
- * Si pudo asignar un espacio de memoria devuelve una referencia a la salida digital creada si pudo, en caso contrario
- * devuelve NULL
+ * Si pudo asignar un espacio de memoria devuelve una referencia a la salida digital creada ademas desactiva esta salida
+ * digital, en caso contrario devuelve NULL.
  *
  * @param port Puerto de la salida digital creada
  * @param pin Pin de la salida digital creada
