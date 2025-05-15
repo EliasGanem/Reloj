@@ -124,7 +124,6 @@
 int main(void) {
 
     int divisor = 0;
-    bool current_state, last_state = false;
 
     Chip_SCU_PinMuxSet(LED_R_PORT, LED_R_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | LED_R_FUNC);
     digital_output_p led_red = DigitalOutputCreate(LED_R_GPIO, LED_R_BIT);
@@ -156,7 +155,7 @@ int main(void) {
     digital_input_p button_3 = DigitalInputCreate(TEC_3_GPIO, TEC_3_BIT, true);
 
     Chip_SCU_PinMuxSet(TEC_4_PORT, TEC_4_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_PULLUP | TEC_4_FUNC);
-    Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, TEC_4_GPIO, TEC_4_BIT, false);
+    digital_input_p button_4 = DigitalInputCreate(TEC_4_GPIO, TEC_4_BIT, true);
 
     while (true) {
         if (DigitalInputGetIsActive(button_1)) {
@@ -169,16 +168,14 @@ int main(void) {
             DigitalOutputDeactivate(led_green);
         }
 
-        current_state = (DigitalInputGetIsActive(button_2));
-        if ((current_state) && (!last_state)) {
+        if (DigitalInputWasChanged(button_2)) {
             DigitalOutputToggle(led_1);
         }
-        last_state = current_state;
 
         if (DigitalInputGetIsActive(button_3)) {
             DigitalOutputActivate(led_2);
         }
-        if (Chip_GPIO_ReadPortBit(LPC_GPIO_PORT, TEC_4_GPIO, TEC_4_BIT) == 0) {
+        if (DigitalInputGetIsActive(button_4)) {
             DigitalOutputDeactivate(led_2);
         }
 
