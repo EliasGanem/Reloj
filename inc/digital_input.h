@@ -66,7 +66,8 @@ digital_input_p DigitalInputCreate(uint8_t port, uint32_t pin, bool inverted);
 /**
  * @brief Funcion para preguntarle a la entrada digital si está activa
  *
- * Se encarga de la logica negada, devuelve uno si se considera un estado activo
+ * Se encarga de la logica negada, devuelve uno si se considera un estado activo. Ademas lee por primera vez la entrada
+ * para usarla como el ultimo estado
  *
  * @param input Referencia a la entrada digital
  * @return true Si la entrada esta activa

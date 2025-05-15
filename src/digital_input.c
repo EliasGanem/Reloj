@@ -37,9 +37,10 @@ SPDX-License-Identifier: MIT
 
 //! Estructura que representa una entrada digital
 struct digital_input_s {
-    uint8_t port;  //!< Puerto al que pertenece la entrada digital
-    uint32_t pin;  //!< Pin al que pertenece la entrada digital
-    bool inverted; //!< Indica si la entrada digital tiene logica invertida
+    uint8_t port;   //!< Puerto al que pertenece la entrada digital
+    uint32_t pin;   //!< Pin al que pertenece la entrada digital
+    bool inverted;  //!< Indica si la entrada digital tiene logica invertida
+    bool laststate; //!< Recuerda el estado anterior independiente de si es logica invertida o no
 #ifndef USE_DYNAMIC_MEMORY
     bool used; //!< Indica si la entrada digital esta siendo usada. Solo es usado cuando NO se tiene memoria dinamcia
 #endif
@@ -98,6 +99,7 @@ digital_input_p DigitalInputCreate(uint8_t port, uint32_t pin, bool inverted) {
         self->pin = pin;
         self->inverted = inverted;
         Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, self->port, self->pin, false);
+        self->laststate = DigitalInputGetIsActive(self);
     }
 
     return self;
@@ -112,6 +114,29 @@ bool DigitalInputGetIsActive(digital_input_p self) {
         state = !state;
     }
     return state;
+}
+
+digital_input_changes_t DigitalInputWasChanged(digital_input_p self) {
+    digital_input_changes_t result = DIGITAL_INPUT_NO_CHANGE;
+
+    bool state = DigitalInputGetIsActive(self);
+    if (!self->laststate && state) {
+        result = DIGITAL_INPUT_WAS_ACTIVATED;
+    } else if (self->laststate && !state) {
+        result = DIGITAL_INPUT_WAS_DEACTIVATED;
+    }
+
+    self->laststate = state;
+
+    return result;
+}
+
+bool DigitalInputWasActivated(digital_input_p self) {
+    return DIGITAL_INPUT_WAS_ACTIVATED == DigitalInputWasChanged(self);
+}
+
+bool DigitalInputWasDeactivated(digital_input_p self) {
+    return DIGITAL_INPUT_WAS_DEACTIVATED == DigitalInputWasChanged(self);
 }
 
 /* === End of documentation ======================================================================================== */
