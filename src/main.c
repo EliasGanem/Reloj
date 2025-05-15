@@ -42,6 +42,7 @@
 
 #include "chip.h"
 #include "digital_output.h"
+#include "digital_input.h"
 #include <stdbool.h>
 
 /* === Macros definitions ====================================================================== */
@@ -123,7 +124,6 @@
 int main(void) {
 
     int divisor = 0;
-    bool current_state, last_state = false;
 
     Chip_SCU_PinMuxSet(LED_R_PORT, LED_R_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | LED_R_FUNC);
     digital_output_p led_red = DigitalOutputCreate(LED_R_GPIO, LED_R_BIT);
@@ -146,19 +146,19 @@ int main(void) {
 
     /******************/
     Chip_SCU_PinMuxSet(TEC_1_PORT, TEC_1_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_PULLUP | TEC_1_FUNC);
-    Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, TEC_1_GPIO, TEC_1_BIT, false);
+    digital_input_p button_1 = DigitalInputCreate(TEC_1_GPIO, TEC_1_BIT, true);
 
     Chip_SCU_PinMuxSet(TEC_2_PORT, TEC_2_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_PULLUP | TEC_2_FUNC);
-    Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, TEC_2_GPIO, TEC_2_BIT, false);
+    digital_input_p button_2 = DigitalInputCreate(TEC_2_GPIO, TEC_2_BIT, true);
 
     Chip_SCU_PinMuxSet(TEC_3_PORT, TEC_3_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_PULLUP | TEC_3_FUNC);
-    Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, TEC_3_GPIO, TEC_3_BIT, false);
+    digital_input_p button_3 = DigitalInputCreate(TEC_3_GPIO, TEC_3_BIT, true);
 
     Chip_SCU_PinMuxSet(TEC_4_PORT, TEC_4_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_PULLUP | TEC_4_FUNC);
-    Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, TEC_4_GPIO, TEC_4_BIT, false);
+    digital_input_p button_4 = DigitalInputCreate(TEC_4_GPIO, TEC_4_BIT, true);
 
     while (true) {
-        if (Chip_GPIO_ReadPortBit(LPC_GPIO_PORT, TEC_1_GPIO, TEC_1_BIT) == 0) {
+        if (DigitalInputGetIsActive(button_1)) {
             DigitalOutputActivate(led_blue);
             DigitalOutputActivate(led_red);
             DigitalOutputActivate(led_green);
@@ -168,16 +168,14 @@ int main(void) {
             DigitalOutputDeactivate(led_green);
         }
 
-        current_state = (Chip_GPIO_ReadPortBit(LPC_GPIO_PORT, TEC_2_GPIO, TEC_2_BIT) == 0);
-        if ((current_state) && (!last_state)) {
+        if (DigitalInputWasChanged(button_2)) {
             DigitalOutputToggle(led_1);
         }
-        last_state = current_state;
 
-        if (Chip_GPIO_ReadPortBit(LPC_GPIO_PORT, TEC_3_GPIO, TEC_3_BIT) == 0) {
+        if (DigitalInputGetIsActive(button_3)) {
             DigitalOutputActivate(led_2);
         }
-        if (Chip_GPIO_ReadPortBit(LPC_GPIO_PORT, TEC_4_GPIO, TEC_4_BIT) == 0) {
+        if (DigitalInputGetIsActive(button_4)) {
             DigitalOutputDeactivate(led_2);
         }
 

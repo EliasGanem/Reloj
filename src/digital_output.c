@@ -56,7 +56,7 @@ struct digital_output_s {
  *
  * @return digital_output_p
  */
-digital_output_p CreateInstance();
+static digital_output_p CreateInstance();
 
 /* === Private variable definitions ================================================================================ */
 
@@ -70,7 +70,7 @@ static struct digital_output_s instances[DIGITAL_OUTPUT_MAX_INSTANCE] = {0};
 /* === Private function definitions ================================================================================ */
 
 #ifndef USE_DYNAMIC_MEMORY
-digital_output_p CreateInstance() {
+static digital_output_p CreateInstance() {
     digital_output_p self = NULL;
     int i;
 
