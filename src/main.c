@@ -121,7 +121,6 @@
 /* === Public function implementation ========================================================= */
 
 int main(void) {
-    digital_output_p led_green = DigitalOutputCreate(LED_3_GPIO, LED_3_BIT);
 
     int divisor = 0;
     bool current_state, last_state = false;
@@ -148,8 +147,7 @@ int main(void) {
     Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, LED_2_GPIO, LED_2_BIT, true);
 
     Chip_SCU_PinMuxSet(LED_3_PORT, LED_3_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | LED_3_FUNC);
-    Chip_GPIO_SetPinState(LPC_GPIO_PORT, LED_3_GPIO, LED_3_BIT, false);
-    Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, LED_3_GPIO, LED_3_BIT, true);
+    digital_output_p led_3 = DigitalOutputCreate(LED_3_GPIO, LED_3_BIT);
 
     /******************/
     Chip_SCU_PinMuxSet(TEC_1_PORT, TEC_1_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_PULLUP | TEC_1_FUNC);
@@ -187,7 +185,7 @@ int main(void) {
         divisor++;
         if (divisor == 5) {
             divisor = 0;
-            DigitalOutputToggle(led_green);
+            DigitalOutputToggle(led_3);
         }
 
         for (int index = 0; index < 100; index++) {
