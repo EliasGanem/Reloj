@@ -42,6 +42,7 @@
 
 #include "chip.h"
 #include "digital_output.h"
+#include "digital_input.h"
 #include <stdbool.h>
 
 /* === Macros definitions ====================================================================== */
@@ -146,7 +147,7 @@ int main(void) {
 
     /******************/
     Chip_SCU_PinMuxSet(TEC_1_PORT, TEC_1_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_PULLUP | TEC_1_FUNC);
-    Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, TEC_1_GPIO, TEC_1_BIT, false);
+    digital_input_p button_1 = DigitalInputCreate(TEC_1_GPIO, TEC_1_BIT, true);
 
     Chip_SCU_PinMuxSet(TEC_2_PORT, TEC_2_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_PULLUP | TEC_2_FUNC);
     Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, TEC_2_GPIO, TEC_2_BIT, false);
@@ -158,7 +159,7 @@ int main(void) {
     Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, TEC_4_GPIO, TEC_4_BIT, false);
 
     while (true) {
-        if (Chip_GPIO_ReadPortBit(LPC_GPIO_PORT, TEC_1_GPIO, TEC_1_BIT) == 0) {
+        if (DigitalInputGetIsActive(button_1)) {
             DigitalOutputActivate(led_blue);
             DigitalOutputActivate(led_red);
             DigitalOutputActivate(led_green);
