@@ -121,7 +121,7 @@
 /* === Public function implementation ========================================================= */
 
 int main(void) {
-    digital_output_p led_green = DigitalOutputCreate(LED_3_PORT, LED_3_PIN);
+    digital_output_p led_green = DigitalOutputCreate(LED_3_GPIO, LED_3_BIT);
 
     int divisor = 0;
     bool current_state, last_state = false;
@@ -187,7 +187,6 @@ int main(void) {
         divisor++;
         if (divisor == 5) {
             divisor = 0;
-            Chip_GPIO_SetPinToggle(LPC_GPIO_PORT, LED_3_GPIO, LED_3_BIT);
             DigitalOutputToggle(led_green);
         }
 

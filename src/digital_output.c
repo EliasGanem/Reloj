@@ -25,6 +25,7 @@ SPDX-License-Identifier: MIT
 
 #include "digital_output.h"
 #include "config.h"
+#include "chip.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -109,6 +110,7 @@ void DigitalOutputDeactivate(digital_output_p self) {
 }
 
 void DigitalOutputToggle(digital_output_p self) {
+    Chip_GPIO_SetPinToggle(LPC_GPIO_PORT, self->port, self->pin);
 }
 
 /* === End of documentation ======================================================================================== */
