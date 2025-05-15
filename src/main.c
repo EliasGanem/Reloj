@@ -126,12 +126,10 @@ int main(void) {
     bool current_state, last_state = false;
 
     Chip_SCU_PinMuxSet(LED_R_PORT, LED_R_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | LED_R_FUNC);
-    Chip_GPIO_SetPinState(LPC_GPIO_PORT, LED_R_GPIO, LED_R_BIT, false);
-    Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, LED_R_GPIO, LED_R_BIT, true);
+    digital_output_p led_red = DigitalOutputCreate(LED_R_GPIO, LED_R_BIT);
 
     Chip_SCU_PinMuxSet(LED_G_PORT, LED_G_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | LED_G_FUNC);
-    Chip_GPIO_SetPinState(LPC_GPIO_PORT, LED_G_GPIO, LED_G_BIT, false);
-    Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, LED_G_GPIO, LED_G_BIT, true);
+    digital_output_p led_green = DigitalOutputCreate(LED_G_GPIO, LED_G_BIT);
 
     Chip_SCU_PinMuxSet(LED_B_PORT, LED_B_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | LED_B_FUNC);
     digital_output_p led_blue = DigitalOutputCreate(LED_B_GPIO, LED_B_BIT);
@@ -162,8 +160,12 @@ int main(void) {
     while (true) {
         if (Chip_GPIO_ReadPortBit(LPC_GPIO_PORT, TEC_1_GPIO, TEC_1_BIT) == 0) {
             DigitalOutputActivate(led_blue);
+            DigitalOutputActivate(led_red);
+            DigitalOutputActivate(led_green);
         } else {
             DigitalOutputDeactivate(led_blue);
+            DigitalOutputDeactivate(led_red);
+            DigitalOutputDeactivate(led_green);
         }
 
         current_state = (Chip_GPIO_ReadPortBit(LPC_GPIO_PORT, TEC_2_GPIO, TEC_2_BIT) == 0);
