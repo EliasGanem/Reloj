@@ -59,7 +59,7 @@ typedef struct board_s {
 
 /* === Public function declarations ================================================================================ */
 
-board_p BoardCreate();
+board_p BoardCreate(void);
 
 /* === End of conditional blocks =================================================================================== */
 

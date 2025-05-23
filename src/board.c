@@ -27,7 +27,7 @@ SPDX-License-Identifier: MIT
 /* === Headers files inclusions ==================================================================================== */
 
 #include "board.h"
-#include "nxp-4337.h"
+#include "edusia.h"
 #include "chip.h"
 #include <stddef.h>
 #include <stdlib.h>
@@ -44,7 +44,7 @@ SPDX-License-Identifier: MIT
 
 /* === Private function definitions ================================================================================ */
 
-board_p BoardCreate() {
+board_p BoardCreate(void) {
     struct board_s * self = NULL;
 
     self = malloc(sizeof(struct board_s));
