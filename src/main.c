@@ -40,7 +40,7 @@
 
 /* === Headers files inclusions =============================================================== */
 
-#include "board.h"
+#include "bsp.h"
 #include <stdbool.h>
 
 /* === Macros definitions ====================================================================== */

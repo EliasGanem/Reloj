@@ -17,7 +17,7 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 SPDX-License-Identifier: MIT
 *********************************************************************************************************************/
 
-/** @file board.c
+/** @file bsp.c
  *
  * Se debe incluir el archivo .h de la placa, con la configuracion de los pines
  *
@@ -26,7 +26,7 @@ SPDX-License-Identifier: MIT
 
 /* === Headers files inclusions ==================================================================================== */
 
-#include "board.h"
+#include "bsp.h"
 #include "edusia.h"
 #include "chip.h"
 #include <stddef.h>
