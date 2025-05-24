@@ -17,11 +17,11 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 SPDX-License-Identifier: MIT
 *********************************************************************************************************************/
 
-#ifndef BOARD_H_
-#define BOARD_H_
+#ifndef BSP_H_
+#define BSP_H_
 
-/** @file board.h
- ** @brief Declaraciones del modulo placa - Electrónica 4 2025
+/** @file bsp.h
+ ** @brief Declaraciones del modulo bsp - Electrónica 4 2025
  **/
 
 /* === Headers files inclusions ==================================================================================== */
@@ -67,4 +67,4 @@ board_p BoardCreate(void);
 }
 #endif
 
-#endif /* BOARD_H_ */
+#endif /* BSP_H_ */
