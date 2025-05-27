@@ -26,6 +26,7 @@ SPDX-License-Identifier: MIT
 #include "digital_input.h"
 #include "config.h"
 #include "chip.h"
+#include <stdlib.h>
 
 /* === Macros definitions ========================================================================================== */
 
@@ -53,6 +54,7 @@ static struct digital_input_s instances[DIGITAL_INPUT_MAX_INSTANCE] = {0};
 
 /* === Private function declarations =============================================================================== */
 
+#ifndef USE_DYNAMIC_MEMORY
 /**
  * @brief Funcion para Crear un objeto entrada digital
  *
@@ -61,6 +63,7 @@ static struct digital_input_s instances[DIGITAL_INPUT_MAX_INSTANCE] = {0};
  * @return digital_input_p Referencia a la entrada digital usada
  */
 static digital_input_p CreateInstance(void);
+#endif
 
 /* === Private variable definitions ================================================================================ */
 

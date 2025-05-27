@@ -76,7 +76,7 @@ int main(void) {
             DigitalOutputDeactivate(shield->led_green);
         }
 
-        if (DigitalInputWasChanged(shield->button_2)) {
+        if (DigitalInputWasChanged(shield->button_2) == DIGITAL_INPUT_WAS_ACTIVATED) {
             DigitalOutputToggle(shield->led_1);
         }
 

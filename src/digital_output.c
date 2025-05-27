@@ -49,6 +49,7 @@ struct digital_output_s {
 
 /* === Private function declarations =============================================================================== */
 
+#ifndef USE_DYNAMIC_MEMORY
 /**
  * @brief Funcion para crear instancia de alumno en caso de NO usar memoria dinamica
  *
@@ -57,6 +58,7 @@ struct digital_output_s {
  * @return digital_output_p
  */
 static digital_output_p CreateInstance();
+#endif
 
 /* === Private variable definitions ================================================================================ */
 
