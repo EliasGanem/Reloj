@@ -17,16 +17,16 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 SPDX-License-Identifier: MIT
 *********************************************************************************************************************/
 
-/** @file bsp.c
+/** @file shield.c
  *
  * Se debe incluir el archivo .h de la placa, con la configuracion de los pines
  *
- ** @brief Codigo duente del modulo de placa para el proyecto reloj - Electrónica 4 2025
+ ** @brief Codigo fuente del modulo de poncho para el proyecto reloj - Electrónica 4 2025
  **/
 
 /* === Headers files inclusions ==================================================================================== */
 
-#include "bsp.h"
+#include "shield.h"
 #include "edusia.h"
 #include "chip.h"
 #include <stddef.h>
@@ -44,10 +44,10 @@ SPDX-License-Identifier: MIT
 
 /* === Private function definitions ================================================================================ */
 
-board_p BoardCreate(void) {
-    struct board_s * self = NULL;
+shield_p BoardCreate(void) {
+    struct shield_s * self = NULL;
 
-    self = malloc(sizeof(struct board_s));
+    self = malloc(sizeof(struct shield_s));
 
     if (self != NULL) {
         Chip_SCU_PinMuxSet(LED_R_PORT, LED_R_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | LED_R_FUNC);

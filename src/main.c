@@ -40,7 +40,7 @@
 
 /* === Headers files inclusions =============================================================== */
 
-#include "bsp.h"
+#include "shield.h"
 #include <stdbool.h>
 
 /* === Macros definitions ====================================================================== */
@@ -63,34 +63,34 @@ int main(void) {
 
     int divisor = 0;
 
-    board_p board = BoardCreate();
+    shield_p shield = BoardCreate();
 
     while (true) {
-        if (DigitalInputGetIsActive(board->button_1)) {
-            DigitalOutputActivate(board->led_blue);
-            DigitalOutputActivate(board->led_red);
-            DigitalOutputActivate(board->led_green);
+        if (DigitalInputGetIsActive(shield->button_1)) {
+            DigitalOutputActivate(shield->led_blue);
+            DigitalOutputActivate(shield->led_red);
+            DigitalOutputActivate(shield->led_green);
         } else {
-            DigitalOutputDeactivate(board->led_blue);
-            DigitalOutputDeactivate(board->led_red);
-            DigitalOutputDeactivate(board->led_green);
+            DigitalOutputDeactivate(shield->led_blue);
+            DigitalOutputDeactivate(shield->led_red);
+            DigitalOutputDeactivate(shield->led_green);
         }
 
-        if (DigitalInputWasChanged(board->button_2)) {
-            DigitalOutputToggle(board->led_1);
+        if (DigitalInputWasChanged(shield->button_2)) {
+            DigitalOutputToggle(shield->led_1);
         }
 
-        if (DigitalInputGetIsActive(board->button_3)) {
-            DigitalOutputActivate(board->led_2);
+        if (DigitalInputGetIsActive(shield->button_3)) {
+            DigitalOutputActivate(shield->led_2);
         }
-        if (DigitalInputGetIsActive(board->button_4)) {
-            DigitalOutputDeactivate(board->led_2);
+        if (DigitalInputGetIsActive(shield->button_4)) {
+            DigitalOutputDeactivate(shield->led_2);
         }
 
         divisor++;
         if (divisor == 5) {
             divisor = 0;
-            DigitalOutputToggle(board->led_3);
+            DigitalOutputToggle(shield->led_3);
         }
 
         for (int index = 0; index < 100; index++) {

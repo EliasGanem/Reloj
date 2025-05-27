@@ -17,11 +17,11 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 SPDX-License-Identifier: MIT
 *********************************************************************************************************************/
 
-#ifndef BSP_H_
-#define BSP_H_
+#ifndef SHIELD_H_
+#define SHIELD_H_
 
-/** @file bsp.h
- ** @brief Declaraciones del modulo bsp - Electrónica 4 2025
+/** @file shield.h
+ ** @brief Declaraciones del modulo shield - Electrónica 4 2025
  **/
 
 /* === Headers files inclusions ==================================================================================== */
@@ -42,7 +42,7 @@ extern "C" {
 /* === Public data type declarations =============================================================================== */
 
 // Referencia a la placa
-typedef struct board_s {
+typedef struct shield_s {
     digital_input_p button_1;
     digital_input_p button_2;
     digital_input_p button_3;
@@ -53,13 +53,13 @@ typedef struct board_s {
     digital_output_p led_green;
     digital_output_p led_red;
     digital_output_p led_blue;
-} const * const board_p;
+} const * const shield_p;
 
 /* === Public variable declarations ================================================================================ */
 
 /* === Public function declarations ================================================================================ */
 
-board_p BoardCreate(void);
+shield_p BoardCreate(void);
 
 /* === End of conditional blocks =================================================================================== */
 
@@ -67,4 +67,4 @@ board_p BoardCreate(void);
 }
 #endif
 
-#endif /* BSP_H_ */
+#endif /* SHIELD_H_ */
