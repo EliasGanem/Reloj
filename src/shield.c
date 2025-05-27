@@ -27,7 +27,8 @@ SPDX-License-Identifier: MIT
 /* === Headers files inclusions ==================================================================================== */
 
 #include "shield.h"
-#include "edusia.h"
+#include "edusia_config.h"
+#include "poncho_config.h"
 #include "chip.h"
 #include <stddef.h>
 #include <stdlib.h>
@@ -44,7 +45,7 @@ SPDX-License-Identifier: MIT
 
 /* === Private function definitions ================================================================================ */
 
-shield_p BoardCreate(void) {
+shield_p ShieldCreate(void) {
     struct shield_s * self = NULL;
 
     self = malloc(sizeof(struct shield_s));
@@ -81,6 +82,24 @@ shield_p BoardCreate(void) {
 
         Chip_SCU_PinMuxSet(TEC_4_PORT, TEC_4_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_PULLUP | TEC_4_FUNC);
         self->button_4 = DigitalInputCreate(TEC_4_GPIO, TEC_4_BIT, true);
+
+        Chip_SCU_PinMuxSet(KEY_ACCEPT_PORT, KEY_ACCEPT_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_PULLUP | KEY_ACCEPT_FUNC);
+        self->accept = DigitalInputCreate(KEY_ACCEPT_GPIO, KEY_ACCEPT_BIT, false);
+
+        Chip_SCU_PinMuxSet(KEY_CANCEL_PORT, KEY_CANCEL_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_PULLUP | KEY_CANCEL_FUNC);
+        self->cancel = DigitalInputCreate(KEY_CANCEL_GPIO, KEY_CANCEL_BIT, false);
+
+        Chip_SCU_PinMuxSet(KEY_F1_PORT, KEY_F1_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_PULLUP | KEY_F1_FUNC);
+        self->f1 = DigitalInputCreate(KEY_F1_GPIO, KEY_F1_BIT, false);
+
+        Chip_SCU_PinMuxSet(KEY_F2_PORT, KEY_F2_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_PULLUP | KEY_F2_FUNC);
+        self->f2 = DigitalInputCreate(KEY_F2_GPIO, KEY_F2_BIT, false);
+
+        Chip_SCU_PinMuxSet(KEY_F3_PORT, KEY_F3_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_PULLUP | KEY_F3_FUNC);
+        self->f3 = DigitalInputCreate(KEY_F3_GPIO, KEY_F3_BIT, false);
+
+        Chip_SCU_PinMuxSet(KEY_F4_PORT, KEY_F4_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_PULLUP | KEY_F4_FUNC);
+        self->f4 = DigitalInputCreate(KEY_F4_GPIO, KEY_F4_BIT, false);
     }
 
     return self;

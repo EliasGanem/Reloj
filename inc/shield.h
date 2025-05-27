@@ -47,6 +47,12 @@ typedef struct shield_s {
     digital_input_p button_2;
     digital_input_p button_3;
     digital_input_p button_4;
+    digital_input_p accept;
+    digital_input_p cancel;
+    digital_input_p f1;
+    digital_input_p f2;
+    digital_input_p f3;
+    digital_input_p f4;
     digital_output_p led_1;
     digital_output_p led_2;
     digital_output_p led_3;
@@ -59,7 +65,7 @@ typedef struct shield_s {
 
 /* === Public function declarations ================================================================================ */
 
-shield_p BoardCreate(void);
+shield_p ShieldCreate(void);
 
 /* === End of conditional blocks =================================================================================== */
 

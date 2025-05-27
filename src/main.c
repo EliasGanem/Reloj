@@ -63,17 +63,25 @@ int main(void) {
 
     int divisor = 0;
 
-    shield_p shield = BoardCreate();
+    shield_p shield = ShieldCreate();
 
     while (true) {
-        if (DigitalInputGetIsActive(shield->button_1)) {
+        if (DigitalInputGetIsActive(shield->f2)) {
             DigitalOutputActivate(shield->led_blue);
-            DigitalOutputActivate(shield->led_red);
-            DigitalOutputActivate(shield->led_green);
         } else {
             DigitalOutputDeactivate(shield->led_blue);
-            DigitalOutputDeactivate(shield->led_red);
+        }
+
+        if (DigitalInputGetIsActive(shield->f3)) {
+            DigitalOutputActivate(shield->led_green);
+        } else {
             DigitalOutputDeactivate(shield->led_green);
+        }
+
+        if (DigitalInputGetIsActive(shield->f4)) {
+            DigitalOutputActivate(shield->led_red);
+        } else {
+            DigitalOutputDeactivate(shield->led_red);
         }
 
         if (DigitalInputWasChanged(shield->button_2) == DIGITAL_INPUT_WAS_ACTIVATED) {

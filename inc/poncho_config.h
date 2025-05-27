@@ -32,8 +32,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef PONCHO_H
-#define PONCHO_H
+#ifndef PONCHO_CONFIG_H
+#define PONCHO_CONFIG_H
 
 /** \brief UNT shield board hardware abstraction declarations
  **
@@ -204,4 +204,4 @@ extern "C" {
 
 /** @} End of module definition for doxygen */
 
-#endif   /* PONCHO_H */
+#endif   /* PONCHO_CONFIG_H */
