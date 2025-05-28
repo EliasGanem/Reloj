@@ -30,6 +30,7 @@ SPDX-License-Identifier: MIT
 #include <stdbool.h>
 #include <digital_input.h>
 #include <digital_output.h>
+#include "config.h"
 
 /* === Header for C++ compatibility ================================================================================ */
 
@@ -41,30 +42,28 @@ extern "C" {
 
 /* === Public data type declarations =============================================================================== */
 
-// Referencia a la placa
+//! Estructura que representa el poncho
 typedef struct shield_s {
-    digital_input_p button_1;
-    digital_input_p button_2;
-    digital_input_p button_3;
-    digital_input_p button_4;
     digital_input_p accept;
     digital_input_p cancel;
-    digital_input_p f1;
-    digital_input_p f2;
-    digital_input_p f3;
-    digital_input_p f4;
-    digital_output_p led_1;
-    digital_output_p led_2;
-    digital_output_p led_3;
-    digital_output_p led_green;
-    digital_output_p led_red;
-    digital_output_p led_blue;
+    digital_input_p set_time;
+    digital_input_p set_alarm;
+    digital_input_p incremet;
+    digital_input_p decrement;
+    digital_output_p buzzer;
+#ifndef USE_DYNAMIC_MEMORY
+    bool used; //!< indica si el struc esta siendo usado en caso de no usar memoria dinamica
+#endif
 } const * const shield_p;
 
 /* === Public variable declarations ================================================================================ */
 
 /* === Public function declarations ================================================================================ */
-
+/**
+ * @brief Funcion para crear un pocnho
+ *
+ * @return shield_p referencia al poncho
+ */
 shield_p ShieldCreate(void);
 
 /* === End of conditional blocks =================================================================================== */
