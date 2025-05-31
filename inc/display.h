@@ -17,10 +17,10 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 SPDX-License-Identifier: MIT
 *********************************************************************************************************************/
 
-#ifndef SEG_DISPLAY_H_
-#define SEG_DISPLAY_H_
+#ifndef DISPLAY_H_
+#define DISPLAY_H_
 
-/** @file seg_display.h
+/** @file display.h
  *
  ** @brief Declaraciones del modulo display - Electrónica 4 2025
  **/
@@ -51,6 +51,21 @@ extern "C" {
 //! Tipo de dato que  tiene la referencia a una pantalla
 typedef struct display_s * display_p;
 
+//! Puntero a una función que apaga los digitos
+typedef void (*turn_off_digits_p)(void);
+//! Puntero a una función que prende los segmentos que se le indica, incluye el punto. Se le envía un byte cuyo LSB
+//! corresponde al segmento a, el siguiente bit es el b. El MSB es el punto, el anterior corresponde al segmento g.
+typedef void (*update_segments_p)(uint8_t new_segments);
+//! Puntero a una función que pendre un digito
+typedef void (*turn_on_digit_p)(uint8_t digit);
+
+//! Interface Controlador para el Display
+typedef struct display_controller_s {
+    turn_off_digits_p TurnOffDigits;  //!< puntero a la funcion encargada de apagar los digitos
+    update_segments_p UpdateSegments; //!< puntero a la funcion encargada de actualizar los segmentos
+    turn_on_digit_p TurnOnDigit;      //!< puntero a la funcion encargada de prender un digito
+} const * const display_controller_p;
+
 /* === Public variable declarations ================================================================================ */
 
 /* === Public function declarations ================================================================================ */
@@ -64,9 +79,18 @@ typedef struct display_s * display_p;
  * @param number_digits cantidad de digitos
  * @return display_p referencia al objeto creado
  */
-display_p DisplayCreate(uint8_t number_digits);
+display_p DisplayCreate(uint8_t number_digits, display_controller_p driver);
 
-void DisplayWrite(display_p display, uint8_t * value_to_show, uint8_t size);
+/**
+ * @brief Funcion que escribe numeros en el Display
+ *
+ * Se le indica que display usar y el array de u_int_8 con los numeros que se desea mostrar
+ *
+ * @param display referencia al display que se va a usar
+ * @param value_to_show puntero al array que contiene los numeros a mostar
+ * @param size tamañó del array
+ */
+void DisplayWriteBCD(display_p display, uint8_t * value_to_show, uint8_t size);
 
 void DisplayRefresh(display_p screen);
 
@@ -76,4 +100,4 @@ void DisplayRefresh(display_p screen);
 }
 #endif
 
-#endif /* SEG_DISPLAY_H_ */
+#endif /* DISPLAY_H_ */

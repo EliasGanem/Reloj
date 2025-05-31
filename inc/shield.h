@@ -30,6 +30,7 @@ SPDX-License-Identifier: MIT
 #include <stdbool.h>
 #include <digital_input.h>
 #include <digital_output.h>
+#include <display.h>
 #include "config.h"
 
 /* === Header for C++ compatibility ================================================================================ */
@@ -44,13 +45,14 @@ extern "C" {
 
 //! Estructura que representa el poncho
 typedef struct shield_s {
-    digital_input_p accept;
-    digital_input_p cancel;
-    digital_input_p set_time;
-    digital_input_p set_alarm;
-    digital_input_p incremet;
-    digital_input_p decrement;
-    digital_output_p buzzer;
+    digital_input_p accept;    //! boton de acceptar
+    digital_input_p cancel;    //! boton de cancelar
+    digital_input_p set_time;  //! boton para cambiar la hora
+    digital_input_p set_alarm; //! boton para cambiar la alarma
+    digital_input_p incremet;  //! boton para incrementar
+    digital_input_p decrement; //! boton para decrementar
+    digital_output_p buzzer;   //! indicador de alarma
+    display_p display;         //! display de 7 segmentos para mostrar la hora
 #ifndef USE_DYNAMIC_MEMORY
     bool used; //!< indica si el struc esta siendo usado en caso de no usar memoria dinamica
 #endif

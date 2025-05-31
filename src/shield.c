@@ -28,7 +28,7 @@ SPDX-License-Identifier: MIT
 
 #include "shield.h"
 #include "edusia_config.h"
-#include "poncho_config.h"
+#include "shield_config.h"
 #include "chip.h"
 #include <stddef.h>
 #include <stdlib.h>
@@ -56,7 +56,31 @@ static struct shield_s instances[SHIELD_MAX_INSTANCE] = {0}; //!< Array con los 
 static shield_p CreateInstance();
 #endif
 
+/**
+ * @brief Funcion para configurar los pines de entrada de la placa recién creada
+ *
+ * @param self // referencia de la placa que se crea
+ */
+static void InputInit(struct shield_s * self);
+
+/**
+ * @brief Función para configurar los pines de salida de la placa recién creada
+ *
+ * @param self // referencia de la placa que se crea
+ */
+static void OutputInit(struct shield_s * self);
+
+static void TurnOffDigits(void);
+static void TurnOnDigit(uint8_t digit);
+static void UpdateSegments(uint8_t segments);
+
 /* === Private variable definitions ================================================================================ */
+
+static const struct display_controller_s display_driver = {
+    .TurnOffDigits = TurnOffDigits,
+    .TurnOnDigit = TurnOnDigit,
+    .UpdateSegments = UpdateSegments,
+};
 
 /* === Public variable definitions ================================================================================= */
 
@@ -79,6 +103,47 @@ static shield_p CreateInstance() {
 }
 #endif
 
+static void InputInit(struct shield_s * self) {
+    Chip_SCU_PinMuxSet(KEY_ACCEPT_PORT, KEY_ACCEPT_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_PULLUP | KEY_ACCEPT_FUNC);
+    self->accept = DigitalInputCreate(KEY_ACCEPT_GPIO, KEY_ACCEPT_BIT, false);
+
+    Chip_SCU_PinMuxSet(KEY_CANCEL_PORT, KEY_CANCEL_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_PULLUP | KEY_CANCEL_FUNC);
+    self->cancel = DigitalInputCreate(KEY_CANCEL_GPIO, KEY_CANCEL_BIT, false);
+
+    Chip_SCU_PinMuxSet(KEY_F1_PORT, KEY_F1_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_PULLUP | KEY_F1_FUNC);
+    self->set_time = DigitalInputCreate(KEY_F1_GPIO, KEY_F1_BIT, false);
+
+    Chip_SCU_PinMuxSet(KEY_F2_PORT, KEY_F2_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_PULLUP | KEY_F2_FUNC);
+    self->set_alarm = DigitalInputCreate(KEY_F2_GPIO, KEY_F2_BIT, false);
+
+    Chip_SCU_PinMuxSet(KEY_F3_PORT, KEY_F3_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_PULLUP | KEY_F3_FUNC);
+    self->decrement = DigitalInputCreate(KEY_F3_GPIO, KEY_F3_BIT, false);
+
+    Chip_SCU_PinMuxSet(KEY_F4_PORT, KEY_F4_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_PULLUP | KEY_F4_FUNC);
+    self->incremet = DigitalInputCreate(KEY_F4_GPIO, KEY_F4_BIT, false);
+}
+
+static void OutputInit(struct shield_s * self) {
+    Chip_SCU_PinMuxSet(BUZZER_PORT, BUZZER_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | BUZZER_FUNC);
+    self->buzzer = DigitalOutputCreate(BUZZER_GPIO, BUZZER_BIT);
+}
+
+static void TurnOffDigits(void) {
+    Chip_GPIO_ClearValue(LPC_GPIO_PORT, DIGITS_GPIO, DIGITS_MASK);
+}
+
+static void TurnOnDigit(uint8_t digit) {
+    Chip_GPIO_SetValue(LPC_GPIO_PORT, SEGMENTS_GPIO, (1 << (3 - digit)) & DIGITS_MASK);
+}
+
+static void UpdateSegments(uint8_t segments) {
+    Chip_GPIO_ClearValue(LPC_GPIO_PORT, SEGMENTS_GPIO, SEGMENTS_MASK);
+    Chip_GPIO_SetPinState(LPC_GPIO_PORT, SEGMENT_DOT_GPIO, SEGMENT_DOT_BIT, true);
+
+    Chip_GPIO_SetValue(LPC_GPIO_PORT, SEGMENTS_GPIO, (segments & SEGMENTS_MASK));
+    Chip_GPIO_SetPinState(LPC_GPIO_PORT, SEGMENT_DOT_GPIO, SEGMENT_DOT_BIT, (segments & SEGMENT_DOT_MASK));
+}
+
 shield_p ShieldCreate(void) {
     struct shield_s * self = NULL;
 
@@ -88,28 +153,9 @@ shield_p ShieldCreate(void) {
     self = CreateInstance();
 #endif
     if (self != NULL) {
-        Chip_SCU_PinMuxSet(BUZZER_PORT, BUZZER_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | BUZZER_FUNC);
-        self->buzzer = DigitalOutputCreate(BUZZER_GPIO, BUZZER_BIT);
-
-        /******************/
-
-        Chip_SCU_PinMuxSet(KEY_ACCEPT_PORT, KEY_ACCEPT_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_PULLUP | KEY_ACCEPT_FUNC);
-        self->accept = DigitalInputCreate(KEY_ACCEPT_GPIO, KEY_ACCEPT_BIT, false);
-
-        Chip_SCU_PinMuxSet(KEY_CANCEL_PORT, KEY_CANCEL_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_PULLUP | KEY_CANCEL_FUNC);
-        self->cancel = DigitalInputCreate(KEY_CANCEL_GPIO, KEY_CANCEL_BIT, false);
-
-        Chip_SCU_PinMuxSet(KEY_F1_PORT, KEY_F1_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_PULLUP | KEY_F1_FUNC);
-        self->set_time = DigitalInputCreate(KEY_F1_GPIO, KEY_F1_BIT, false);
-
-        Chip_SCU_PinMuxSet(KEY_F2_PORT, KEY_F2_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_PULLUP | KEY_F2_FUNC);
-        self->set_alarm = DigitalInputCreate(KEY_F2_GPIO, KEY_F2_BIT, false);
-
-        Chip_SCU_PinMuxSet(KEY_F3_PORT, KEY_F3_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_PULLUP | KEY_F3_FUNC);
-        self->decrement = DigitalInputCreate(KEY_F3_GPIO, KEY_F3_BIT, false);
-
-        Chip_SCU_PinMuxSet(KEY_F4_PORT, KEY_F4_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_PULLUP | KEY_F4_FUNC);
-        self->incremet = DigitalInputCreate(KEY_F4_GPIO, KEY_F4_BIT, false);
+        InputInit(self);
+        OutputInit(self);
+        self->display = DisplayCreate(4, &display_driver);
     }
 
     return self;

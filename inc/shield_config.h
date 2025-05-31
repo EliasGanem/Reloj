@@ -141,55 +141,56 @@ extern "C" {
     (SEGMENT_A_MASK | SEGMENT_B_MASK | SEGMENT_C_MASK | SEGMENT_D_MASK | SEGMENT_E_MASK | SEGMENT_F_MASK |             \
      SEGMENT_G_MASK)
 
-#define SEGMENT_P_PORT  6
-#define SEGMENT_P_PIN   8
-#define SEGMENT_P_FUNC  SCU_MODE_FUNC4
-#define SEGMENT_P_GPIO  5
-#define SEGMENT_P_BIT   16
+#define SEGMENT_DOT_PORT 6
+#define SEGMENT_DOT_PIN  8
+#define SEGMENT_DOT_FUNC SCU_MODE_FUNC4
+#define SEGMENT_DOT_GPIO 5
+#define SEGMENT_DOT_BIT  16
+#define SEGMENT_DOT_MASK (1 << 7)
 
 // Definiciones de los recursos asociados a las teclas del puncho
-#define KEY_F1_PORT     4
-#define KEY_F1_PIN      8
-#define KEY_F1_FUNC     SCU_MODE_FUNC4
-#define KEY_F1_GPIO     5
-#define KEY_F1_BIT      12
+#define KEY_F1_PORT      4
+#define KEY_F1_PIN       8
+#define KEY_F1_FUNC      SCU_MODE_FUNC4
+#define KEY_F1_GPIO      5
+#define KEY_F1_BIT       12
 
-#define KEY_F2_PORT     4
-#define KEY_F2_PIN      9
-#define KEY_F2_FUNC     SCU_MODE_FUNC4
-#define KEY_F2_GPIO     5
-#define KEY_F2_BIT      13
+#define KEY_F2_PORT      4
+#define KEY_F2_PIN       9
+#define KEY_F2_FUNC      SCU_MODE_FUNC4
+#define KEY_F2_GPIO      5
+#define KEY_F2_BIT       13
 
-#define KEY_F3_PORT     4
-#define KEY_F3_PIN      10
-#define KEY_F3_FUNC     SCU_MODE_FUNC4
-#define KEY_F3_GPIO     5
-#define KEY_F3_BIT      14
+#define KEY_F3_PORT      4
+#define KEY_F3_PIN       10
+#define KEY_F3_FUNC      SCU_MODE_FUNC4
+#define KEY_F3_GPIO      5
+#define KEY_F3_BIT       14
 
-#define KEY_F4_PORT     6
-#define KEY_F4_PIN      7
-#define KEY_F4_FUNC     SCU_MODE_FUNC4
-#define KEY_F4_GPIO     5
-#define KEY_F4_BIT      15
+#define KEY_F4_PORT      6
+#define KEY_F4_PIN       7
+#define KEY_F4_FUNC      SCU_MODE_FUNC4
+#define KEY_F4_GPIO      5
+#define KEY_F4_BIT       15
 
-#define KEY_ACCEPT_PIN  2
-#define KEY_ACCEPT_PORT 3
-#define KEY_ACCEPT_FUNC SCU_MODE_FUNC4
-#define KEY_ACCEPT_GPIO 5
-#define KEY_ACCEPT_BIT  9
+#define KEY_ACCEPT_PIN   2
+#define KEY_ACCEPT_PORT  3
+#define KEY_ACCEPT_FUNC  SCU_MODE_FUNC4
+#define KEY_ACCEPT_GPIO  5
+#define KEY_ACCEPT_BIT   9
 
-#define KEY_CANCEL_PORT 3
-#define KEY_CANCEL_PIN  1
-#define KEY_CANCEL_FUNC SCU_MODE_FUNC4
-#define KEY_CANCEL_GPIO 5
-#define KEY_CANCEL_BIT  8
+#define KEY_CANCEL_PORT  3
+#define KEY_CANCEL_PIN   1
+#define KEY_CANCEL_FUNC  SCU_MODE_FUNC4
+#define KEY_CANCEL_GPIO  5
+#define KEY_CANCEL_BIT   8
 
 // Definiciones de los recursos asociados al zumbador
-#define BUZZER_PORT     2
-#define BUZZER_PIN      2
-#define BUZZER_FUNC     SCU_MODE_FUNC4
-#define BUZZER_GPIO     5
-#define BUZZER_BIT      2
+#define BUZZER_PORT      2
+#define BUZZER_PIN       2
+#define BUZZER_FUNC      SCU_MODE_FUNC4
+#define BUZZER_GPIO      5
+#define BUZZER_BIT       2
 
 /* === Public data type declarations =========================================================== */
 

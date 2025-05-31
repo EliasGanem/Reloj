@@ -17,7 +17,7 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 SPDX-License-Identifier: MIT
 *********************************************************************************************************************/
 
-/** @file seg_display.c
+/** @file display.c
  *
  *
  ** @brief Implementacion del modulo para la gestion de una pantalla con n displays de 7 segmentos multiplexada para el
@@ -27,9 +27,10 @@ SPDX-License-Identifier: MIT
 /* === Headers files inclusions ==================================================================================== */
 
 #include <stdlib.h>
-#include "seg_display.h"
+#include <string.h>
+#include "display.h"
 #include "config.h"
-#include "poncho_config.h"
+#include "shield_config.h"
 
 /* === Macros definitions ========================================================================================== */
 
@@ -40,13 +41,15 @@ SPDX-License-Identifier: MIT
 /* === Private data type declarations ============================================================================== */
 
 //! Estructura que representa a una pantalla de displays de 7 segmentos
-static struct display_s {
+struct display_s {
+    struct display_controller_s * driver;
     uint8_t digits;                           //!< cantidad de displays de 7 segmentos de la pantalla
     uint8_t video_memory[DISPLAY_MAX_DIGITS]; //!< array utilizado para memorizar los segmentos prendidos de cada //!<
                                               //!< display
+    uint8_t current_digit;
 };
 
-static const uint8_t number_map[10] = {
+static const uint8_t NUMBERS[10] = {
     SEGMENT_A | SEGMENT_B | SEGMENT_C | SEGMENT_D | SEGMENT_E | SEGMENT_F,             // 0
     SEGMENT_B | SEGMENT_C,                                                             // 1
     SEGMENT_A | SEGMENT_B | SEGMENT_D | SEGMENT_E | SEGMENT_G,                         // 2
@@ -96,6 +99,7 @@ static void DigitisInit(void) {
 
 static void SegmentsInit(void) {
     Chip_GPIO_ClearValue(LPC_GPIO_PORT, SEGMENTS_GPIO, SEGMENTS_MASK);
+    Chip_GPIO_SetPinState(LPC_GPIO_PORT, SEGMENT_DOT_GPIO, SEGMENT_DOT_BIT, true);
 
     Chip_SCU_PinMuxSet(SEGMENT_A_PORT, SEGMENT_A_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | SEGMENT_A_FUNC);
     Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, SEGMENT_A_GPIO, SEGMENT_A_BIT, true);
@@ -117,11 +121,14 @@ static void SegmentsInit(void) {
 
     Chip_SCU_PinMuxSet(SEGMENT_G_PORT, SEGMENT_G_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | SEGMENT_G_FUNC);
     Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, SEGMENT_G_GPIO, SEGMENT_G_BIT, true);
+
+    Chip_SCU_PinMuxSet(SEGMENT_DOT_PORT, SEGMENT_DOT_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | SEGMENT_DOT_FUNC);
+    Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, SEGMENT_DOT_GPIO, SEGMENT_DOT_BIT, true);
 }
 
 /* === Public function definitions ================================================================================= */
 
-display_p DisplayCreate(uint8_t number_digits) {
+display_p DisplayCreate(uint8_t number_digits, display_controller_p driver) {
     display_p self = malloc(sizeof(struct display_s));
 
     if (number_digits > DISPLAY_MAX_DIGITS) {
@@ -130,7 +137,8 @@ display_p DisplayCreate(uint8_t number_digits) {
 
     if (self) {
         self->digits = number_digits;
-
+        self->driver = driver;
+        self->current_digit = 0;
         DigitisInit();
         SegmentsInit();
     }
@@ -139,13 +147,24 @@ display_p DisplayCreate(uint8_t number_digits) {
 }
 
 void DisplayWriteBCD(display_p self, uint8_t * value, uint8_t size) {
+    memset(self->video_memory, 0, sizeof(self->video_memory));
+
     if (size > self->digits) {
         size = self->digits;
     }
 
     for (int i = 0; i < size; i++) {
-        /* code */
+        self->video_memory[i] = NUMBERS[value[i]];
     }
+}
+
+void DisplayRefresh(display_p self) {
+    self->driver->TurnOffDigits();
+
+    self->current_digit = (self->current_digit + 1) % self->digits;
+
+    self->driver->UpdateSegments(self->video_memory[self->current_digit]);
+    self->driver->TurnOnDigit(self->current_digit);
 }
 
 /* === End of documentation ======================================================================================== */

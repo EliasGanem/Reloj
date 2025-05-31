@@ -60,11 +60,14 @@
 /* === Public function implementation ========================================================= */
 
 int main(void) {
+    uint8_t value[] = {1, 2, 3, 4};
 
     shield_p shield = ShieldCreate();
 
-    while (true) {
+    DisplayWriteBCD(shield->display, value, sizeof(value));
 
+    while (true) {
+        // DisplayRefresh(shield->display);
         for (int index = 0; index < 100; index++) {
             for (int delay = 0; delay < 25000; delay++) {
                 __asm("NOP");
