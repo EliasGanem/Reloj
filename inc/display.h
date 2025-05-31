@@ -78,10 +78,10 @@ typedef struct display_controller_s {
  * Se le debe indicar la cantidad de display de 7 segmentos que tiene la pantalla. Si la cantidad indicada es mayor a la
  * posible se utiliza la maxima posible.
  *
- * @param number_digits cantidad de digitos
+ * @param number_of_digits cantidad de digitos
  * @return display_p referencia al objeto creado
  */
-display_p DisplayCreate(uint8_t number_digits, display_controller_p driver);
+display_p DisplayCreate(uint8_t number_of_digits, display_controller_p driver);
 
 /**
  * @brief Funcion que escribe numeros en el Display
@@ -98,9 +98,26 @@ void DisplayWriteBCD(display_p display, uint8_t * value_to_show, uint8_t size);
  * @brief Funcion que muestra el digito i, en su proxima llamada muestra el dijito i+1. Se actualiza automatimente
  * y muestra lo que contiene la memoria de video de la pantalla.
  *
- * @param screen referencia a la pantalla
+ * @param display referencia a la pantalla
  */
-void DisplayRefresh(display_p screen);
+void DisplayRefresh(display_p display);
+
+/**
+ * @brief Funcion para configurar un parpadero en los digitos desde from hasta to.
+ *
+ * El primer display es el numero 0.
+ * Si la variable "number_call_of" es cero entonces se apaga el parpadeo en los digitos desde from hasta to. En caso de
+ * que to sea mayor que la cantidad de digitos parapadearán los digitos desde from hasta el cantidad de digitios En caso
+ * de que from > to, o que from > cantidad de display la funcion retorna -1
+ *
+ * @param display
+ * @param from
+ * @param to
+ * @param number_calls_off varaible que indica la cantidad de veces que se desea que esten apagados los digitos cuando
+ * se llama a la función de refresco
+ * @return int
+ */
+int DisplayBlinkingDigits(display_p display, uint8_t from, uint8_t to, uint16_t number_calls_off);
 
 /* === End of conditional blocks =================================================================================== */
 
