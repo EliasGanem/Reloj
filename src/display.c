@@ -54,7 +54,7 @@ static const uint8_t NUMBERS[10] = {
     SEGMENT_B | SEGMENT_C,                                                             // 1
     SEGMENT_A | SEGMENT_B | SEGMENT_D | SEGMENT_E | SEGMENT_G,                         // 2
     SEGMENT_A | SEGMENT_B | SEGMENT_C | SEGMENT_D | SEGMENT_G,                         // 3
-    SEGMENT_B | SEGMENT_C | SEGMENT_G | SEGMENT_G,                                     // 4
+    SEGMENT_B | SEGMENT_C | SEGMENT_F | SEGMENT_G,                                     // 4
     SEGMENT_A | SEGMENT_C | SEGMENT_D | SEGMENT_F | SEGMENT_G,                         // 5
     SEGMENT_A | SEGMENT_C | SEGMENT_D | SEGMENT_E | SEGMENT_F | SEGMENT_G,             // 6
     SEGMENT_A | SEGMENT_B | SEGMENT_C,                                                 // 7
@@ -94,7 +94,7 @@ void DisplayWriteBCD(display_p self, uint8_t * value, uint8_t size) {
         size = self->digits;
     }
 
-    for (int i = 0; i < size; i++) {
+    for (uint8_t i = 0; i < size; i++) {
         self->video_memory[i] = NUMBERS[value[i]];
     }
 }

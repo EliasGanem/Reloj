@@ -60,7 +60,7 @@
 /* === Public function implementation ========================================================= */
 
 int main(void) {
-    uint8_t value[] = {1, 2, 3, 4};
+    uint8_t value[] = {4, 3, 2, 1};
 
     shield_p shield = ShieldCreate();
 
@@ -68,11 +68,11 @@ int main(void) {
 
     while (true) {
         DisplayRefresh(shield->display);
-        for (int index = 0; index < 100; index++) {
-            for (int delay = 0; delay < 25000; delay++) {
-                __asm("NOP");
-            }
+        // for (int index = 0; index < 100; index++) {
+        for (int delay = 0; delay < 25000; delay++) {
+            __asm("NOP");
         }
+        //}
     }
 }
 
