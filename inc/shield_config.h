@@ -57,7 +57,7 @@ extern "C" {
 
 #define DIGIT_0_PORT   0
 #define DIGIT_0_PIN    0
-#define DIGIT_0_FUNC   DIGIT_0_PIN
+#define DIGIT_0_FUNC   SCU_MODE_FUNC0
 #define DIGIT_0_GPIO   DIGITS_GPIO
 #define DIGIT_0_BIT    0
 #define DIGIT_0_MASK   (1 << DIGIT_0_BIT)

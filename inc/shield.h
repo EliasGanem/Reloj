@@ -28,9 +28,9 @@ SPDX-License-Identifier: MIT
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <digital_input.h>
-#include <digital_output.h>
-#include <display.h>
+#include "digital_input.h"
+#include "digital_output.h"
+#include "display.h"
 #include "config.h"
 
 /* === Header for C++ compatibility ================================================================================ */

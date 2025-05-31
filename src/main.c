@@ -67,7 +67,7 @@ int main(void) {
     DisplayWriteBCD(shield->display, value, sizeof(value));
 
     while (true) {
-        // DisplayRefresh(shield->display);
+        DisplayRefresh(shield->display);
         for (int index = 0; index < 100; index++) {
             for (int delay = 0; delay < 25000; delay++) {
                 __asm("NOP");
