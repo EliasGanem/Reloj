@@ -159,4 +159,7 @@ int DisplayBlinkingDigits(display_p self, uint8_t from, uint8_t to, uint16_t num
     return result;
 }
 
+int DisplayDot(display_p display, uint8_t digit, bool blink) {
+}
+
 /* === End of documentation ======================================================================================== */

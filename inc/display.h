@@ -119,6 +119,16 @@ void DisplayRefresh(display_p display);
  */
 int DisplayBlinkingDigits(display_p display, uint8_t from, uint8_t to, uint16_t number_calls_off);
 
+/**
+ * @brief Funcion para controlar cada punto del display
+ *
+ * @param display display que se conrtola
+ * @param digit número del digito al cual pertenece el punto a controlar
+ * @param blink indica si el punto parpadea
+ * @return int
+ */
+int DisplayDot(display_p display, uint8_t digit, bool blink);
+
 /* === End of conditional blocks =================================================================================== */
 
 #ifdef __cplusplus
