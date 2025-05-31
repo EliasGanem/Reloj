@@ -53,9 +53,11 @@ typedef struct display_s * display_p;
 
 //! Puntero a una función que apaga los digitos
 typedef void (*turn_off_digits_p)(void);
+
 //! Puntero a una función que prende los segmentos que se le indica, incluye el punto. Se le envía un byte cuyo LSB
 //! corresponde al segmento a, el siguiente bit es el b. El MSB es el punto, el anterior corresponde al segmento g.
 typedef void (*update_segments_p)(uint8_t new_segments);
+
 //! Puntero a una función que pendre un digito
 typedef void (*turn_on_digit_p)(uint8_t digit);
 
@@ -92,6 +94,12 @@ display_p DisplayCreate(uint8_t number_digits, display_controller_p driver);
  */
 void DisplayWriteBCD(display_p display, uint8_t * value_to_show, uint8_t size);
 
+/**
+ * @brief Funcion que muestra el digito i, en su proxima llamada muestra el dijito i+1. Se actualiza automatimente
+ * y muestra lo que contiene la memoria de video de la pantalla.
+ *
+ * @param screen referencia a la pantalla
+ */
 void DisplayRefresh(display_p screen);
 
 /* === End of conditional blocks =================================================================================== */
