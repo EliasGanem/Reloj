@@ -42,12 +42,16 @@ SPDX-License-Identifier: MIT
 
 //! Estructura que representa a una pantalla de displays de 7 segmentos
 struct display_s {
-    struct display_controller_s * driver;
+    struct display_controller_s * driver; //!< puntero a controladores del display
     struct {
-        uint8_t from;
-        uint8_t to;
-        uint16_t calls;
-        uint8_t count;
+        uint8_t from;   //!< digito desde el que se hace parpadear
+        uint8_t to;     //!< ultimo digito que se hace parpadear
+        uint16_t calls; //!< cantidad de llamadas a la función DisplayRefres de la cual la mitad de veces los segmentos
+                        //!< están apagados
+        uint16_t count; //!< variable para contar la cantidad de llamadas
+        uint16_t dots_calls[DISPLAY_MAX_DIGITS]; //!< almacena la cantidad de llamadas a la funcion DisplayRefres de la
+                                                 //!< cual la mitad de veces los segmentos están apagados
+        uint16_t dots_count[DISPLAY_MAX_DIGITS]; //!< cuenta la cantidad de llamadas para los puntos
     } blinking[1];
     uint8_t digits;                           //!< cantidad de displays de 7 segmentos de la pantalla
     uint8_t video_memory[DISPLAY_MAX_DIGITS]; //!< array utilizado para memorizar los segmentos prendidos de cada //!<
@@ -69,7 +73,21 @@ static const uint8_t NUMBERS[10] = {
 };
 /* === Private function declarations =============================================================================== */
 
-int TurnOffSegments(display_p self);
+/**
+ * @brief Función para saber si hay que apagar los segmentos dentro de DisplayRefresh
+ *
+ * @param self referencia del display con el que se trabaja
+ * @return int devuelve 1 si hay que apagar los segmentos
+ */
+static int TurnOffSegments(display_p self);
+
+/**
+ * @brief Función para saber si hay que apagar el punto dentro de DisplayRefresh
+ *
+ * @param self referencia del display con el que se trabaja
+ * @return int devuelve 1 si hay que apagar el punto
+ */
+static int TurnOffDots(display_p self);
 
 /* === Private variable definitions ================================================================================ */
 
@@ -91,6 +109,16 @@ int TurnOffSegments(display_p self) {
     return result;
 }
 
+static int TurnOffDots(display_p self) {
+    int result = 0;
+    if (self->blinking->dots_calls[self->current_digit]) {
+        if (self->blinking->dots_count[self->current_digit] < self->blinking->dots_calls[self->current_digit] / 2) {
+            result = 1;
+        }
+    }
+    return result;
+}
+
 /* === Public function definitions ================================================================================= */
 
 display_p DisplayCreate(uint8_t number_of_digits, display_controller_p driver) {
@@ -106,6 +134,10 @@ display_p DisplayCreate(uint8_t number_of_digits, display_controller_p driver) {
         self->current_digit = 0;
         self->blinking->calls = 0;
         self->blinking->count = 0;
+        for (uint8_t i = 0; i < self->digits; i++) {
+            self->blinking->dots_calls[i] = 0;
+            self->blinking->dots_count[i] = 0;
+        }
     }
 
     return self;
@@ -119,7 +151,7 @@ void DisplayWriteBCD(display_p self, uint8_t * value, uint8_t size) {
     }
 
     for (uint8_t i = 0; i < size; i++) {
-        self->video_memory[i] = NUMBERS[value[i]];
+        self->video_memory[i] = self->video_memory[i] | NUMBERS[value[i]];
     }
 }
 
@@ -136,8 +168,21 @@ void DisplayRefresh(display_p self) {
             self->blinking->count = (self->blinking->count + 1) % self->blinking->calls;
         }
         if (TurnOffSegments(self)) {
-            segments = 0;
+            segments = (~SEGMENTS_MASK) & self->video_memory[self->current_digit];
         }
+    }
+
+    // Actualiza el contador de todos los puntos
+    if (self->current_digit == 0) {
+        for (uint8_t i = 0; i < self->digits; i++) {
+            if (self->blinking->dots_calls[self->current_digit]) {
+                self->blinking->dots_count[i] = (self->blinking->dots_count[i] + 1) % self->blinking->dots_calls[i];
+            }
+        }
+    }
+
+    if (TurnOffDots(self)) {
+        segments = (~SEGMENT_DOT_MASK) & self->video_memory[self->current_digit];
     }
 
     self->driver->UpdateSegments(segments);
@@ -147,7 +192,7 @@ void DisplayRefresh(display_p self) {
 int DisplayBlinkingDigits(display_p self, uint8_t from, uint8_t to, uint16_t number_calls_off) {
     int result = 0;
 
-    if (from > to || from >= DISPLAY_MAX_DIGITS || !self) {
+    if (from > to || from >= self->digits || !self) {
         result = -1;
     } else {
         self->blinking->from = from;
@@ -159,7 +204,25 @@ int DisplayBlinkingDigits(display_p self, uint8_t from, uint8_t to, uint16_t num
     return result;
 }
 
-int DisplayDot(display_p display, uint8_t digit, bool blink) {
+int DisplayDot(display_p self, uint8_t digit, bool on, uint16_t number_of_calls_off) {
+    int result = 0;
+    if (!self || digit >= self->digits) {
+        result = -1;
+    } else {
+        if (on) {
+            self->video_memory[digit] = SEGMENT_DOT_MASK | self->video_memory[digit];
+        } else {
+            self->video_memory[digit] = (~SEGMENT_DOT_MASK) & self->video_memory[digit];
+        }
+
+        if (number_of_calls_off) {
+            self->blinking->dots_calls[digit] = 2 * number_of_calls_off;
+        } else {
+            self->blinking->dots_calls[digit] = 0;
+        }
+    }
+
+    return result;
 }
 
 /* === End of documentation ======================================================================================== */

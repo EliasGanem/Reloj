@@ -28,6 +28,7 @@ SPDX-License-Identifier: MIT
 /* === Headers files inclusions ==================================================================================== */
 
 #include <stdint.h>
+#include <stdbool.h>
 
 /* === Header for C++ compatibility ================================================================================ */
 
@@ -122,12 +123,17 @@ int DisplayBlinkingDigits(display_p display, uint8_t from, uint8_t to, uint16_t 
 /**
  * @brief Funcion para controlar cada punto del display
  *
+ * Se le indica el displya, el digito al que pertenece el punto que se desea hacer que parpadee y la cantidad de
+ * llamadas a la funcion que debe estar en apagado
+ *
  * @param display display que se conrtola
  * @param digit número del digito al cual pertenece el punto a controlar
- * @param blink indica si el punto parpadea
- * @return int
+ * @param turn_on indica si se quiere que el punto este prendido
+ * @param number_call_off si es cero indica que no parpadea, si es otro valor da la cantidad de veces que se desea que
+ * al llamar a DisplayRefresh el punto este apagado
+ * @return devuelve -1 si el numero del digito es mayor a la cantidad de display disponibles
  */
-int DisplayDot(display_p display, uint8_t digit, bool blink);
+int DisplayDot(display_p display, uint8_t digit, bool turn_on, uint16_t number_calls_off);
 
 /* === End of conditional blocks =================================================================================== */
 
