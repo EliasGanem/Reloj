@@ -67,7 +67,7 @@ typedef struct display_controller_s {
     turn_off_digits_p TurnOffDigits;  //!< puntero a la funcion encargada de apagar los digitos
     update_segments_p UpdateSegments; //!< puntero a la funcion encargada de actualizar los segmentos
     turn_on_digit_p TurnOnDigit;      //!< puntero a la funcion encargada de prender un digito
-} const * const display_controller_p;
+} const * display_controller_p;
 
 /* === Public variable declarations ================================================================================ */
 

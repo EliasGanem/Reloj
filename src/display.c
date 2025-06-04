@@ -42,7 +42,7 @@ SPDX-License-Identifier: MIT
 
 //! Estructura que representa a una pantalla de displays de 7 segmentos
 struct display_s {
-    struct display_controller_s * driver; //!< puntero a controladores del display
+    display_controller_p driver; //!< puntero a controladores del display
     struct {
         uint8_t from;   //!< digito desde el que se hace parpadear
         uint8_t to;     //!< ultimo digito que se hace parpadear
@@ -168,21 +168,21 @@ void DisplayRefresh(display_p self) {
             self->blinking->count = (self->blinking->count + 1) % self->blinking->calls;
         }
         if (TurnOffSegments(self)) {
-            segments = (~SEGMENTS_MASK) & self->video_memory[self->current_digit];
+            segments = (~SEGMENTS_MASK) & segments;
         }
     }
 
     // Actualiza el contador de todos los puntos
     if (self->current_digit == 0) {
         for (uint8_t i = 0; i < self->digits; i++) {
-            if (self->blinking->dots_calls[self->current_digit]) {
+            if (self->blinking->dots_calls[i]) {
                 self->blinking->dots_count[i] = (self->blinking->dots_count[i] + 1) % self->blinking->dots_calls[i];
             }
         }
     }
 
     if (TurnOffDots(self)) {
-        segments = (~SEGMENT_DOT_MASK) & self->video_memory[self->current_digit];
+        segments = (SEGMENTS_MASK)&segments;
     }
 
     self->driver->UpdateSegments(segments);
