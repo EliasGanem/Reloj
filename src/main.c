@@ -60,11 +60,16 @@
 /* === Public function implementation ========================================================= */
 
 int main(void) {
-    uint8_t value[] = {4, 3, 2, 1};
+    uint8_t value[] = {3, 2, 1, 0};
 
     shield_p shield = ShieldCreate();
 
     DisplayWriteBCD(shield->display, value, sizeof(value));
+    DisplayBlinkingDigits(shield->display, 2, 3, 25);
+    DisplayDot(shield->display, 0, true, 20);
+    DisplayDot(shield->display, 1, true, 20);
+    DisplayDot(shield->display, 2, true, 40);
+    DisplayDot(shield->display, 3, true, 40);
 
     while (true) {
         DisplayRefresh(shield->display);

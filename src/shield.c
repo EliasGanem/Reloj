@@ -96,7 +96,7 @@ static void TurnOffDigits(void);
 static void TurnOnDigit(uint8_t digit);
 
 /**
- * @brief Función que prende los segmentos que se le indicam, antes de hacerlo los apaga a todos.
+ * @brief Función que apaga todo los segmentos y luego prende los segmentos que se le indican.
  *
  * @param segments
  */
