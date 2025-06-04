@@ -2,3 +2,6 @@
 
 #define DIGITAL_OUTPUT_MAX_INSTANCE 8
 #define DIGITAL_INPUT_MAX_INSTANCE  4
+
+#define SHIELD_MAX_INSTANCE         1
+#define DISPLAY_MAX_DIGITS          4

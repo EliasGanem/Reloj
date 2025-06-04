@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "limits": "c",
+        "stdint.h": "c"
+    }
+}
