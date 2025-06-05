@@ -17,30 +17,15 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 SPDX-License-Identifier: MIT
 *********************************************************************************************************************/
 
-/** @file test_clock.c
- ** @brief Código para testeo de biblioteca reloj - Electrónica 4 2025
+/** @file clock.c
+ ** @brief Código fuente de la biblioteca reloj - Electrónica 4 2025
  **/
-
-/**
- * Pruebas a realizar
-- Al inicializar el reloj está en 00:00 y con hora invalida.
-- Al ajustar la hora el reloj queda en hora y es válida.
-- Después de n ciclos de reloj la hora avanza un segundo, diez segundos, un minutos, diez minutos, una hora, diez horas
-y un día completo.
-- Fijar la hora de la alarma y consultarla.
-- Fijar la alarma y avanzar el reloj para que suene.
-- Fijar la alarma, deshabilitarla y avanzar el reloj para no suene.
-- Hacer sonar la alarma y posponerla.
-- Hacer sonar la alarma y cancelarla hasta el otro dia..
-- Probar que devulve ClockGetTime cuando le pido la hora
- *
- */
 
 /* === Headers files inclusions ==================================================================================== */
 
-#include "unity.h"
-
 #include "clock.h"
+#include <stddef.h>
+#include <string.h>
 
 /* === Macros definitions ========================================================================================== */
 
@@ -54,18 +39,18 @@ y un día completo.
 
 /* === Private function definitions ================================================================================ */
 
-/* === Public function definitions ===+============================================================================= */
+/* === Public function definitions ================================================================================= */
 
-// Al inicializar el reloj está en 00:00 y con hora invalida.
-void test_init_with_invalid_time(void) {
-    clock_time_u current_time = {
-        .time_bcd = {1, 2, 3, 4, 5, 6},
-    };
+clock_p ClockCreate() {
+    return NULL;
+}
 
-    clock_p clock = ClockCreate();
+int ClockGetTime(clock_p self, clock_time_u * current_time) {
+    (void)self;
 
-    TEST_ASSERT_FALSE(ClockGetTime(clock, &current_time));
-    TEST_ASSERT_EACH_EQUAL_UINT8(0, current_time.time_bcd, 6);
+    memset(current_time, 0, sizeof(clock_time_u));
+
+    return 0;
 }
 
 /* === End of documentation ======================================================================================== */
