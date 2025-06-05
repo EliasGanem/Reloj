@@ -44,14 +44,13 @@ SPDX-License-Identifier: MIT
 struct display_s {
     display_controller_p driver; //!< puntero a controladores del display
     struct {
-        uint8_t from;   //!< digito desde el que se hace parpadear
-        uint8_t to;     //!< ultimo digito que se hace parpadear
-        uint16_t calls; //!< cantidad de llamadas a la función DisplayRefres de la cual la mitad de veces los segmentos
-                        //!< están apagados
-        uint16_t count; //!< variable para contar la cantidad de llamadas
-        uint16_t dots_calls[DISPLAY_MAX_DIGITS]; //!< almacena la cantidad de llamadas a la funcion DisplayRefres de la
-                                                 //!< cual la mitad de veces los segmentos están apagados
-        uint16_t dots_count[DISPLAY_MAX_DIGITS]; //!< cuenta la cantidad de llamadas para los puntos
+        uint8_t from;   //!< dígito desde el que se hacen parpadear los segmentos
+        uint8_t to;     //!< ultimo dígito que se hacen parpadear los segmentos
+        uint16_t calls; //!< cantidad de llamadas a @ref DisplayRefresh() para los segmentos
+        uint16_t count; //!< cuenta la cantidad de llamadas a @ref DisplayRefresh() para los segmentos
+        uint16_t dots_calls[DISPLAY_MAX_DIGITS]; //!< cantidad de llamadas a @ref DisplayRefresh() para los puntos
+        uint16_t
+            dots_count[DISPLAY_MAX_DIGITS]; //!< cuenta la cantidad de llamadas @ref DisplayRefresh() para los puntos
     } blinking[1];
     uint8_t digits;                           //!< cantidad de displays de 7 segmentos de la pantalla
     uint8_t video_memory[DISPLAY_MAX_DIGITS]; //!< array utilizado para memorizar los segmentos prendidos de cada //!<
@@ -59,6 +58,7 @@ struct display_s {
     uint8_t current_digit;
 };
 
+//! Array con los segmentos que se deben prender según el número en bcd.
 static const uint8_t NUMBERS[10] = {
     SEGMENT_A | SEGMENT_B | SEGMENT_C | SEGMENT_D | SEGMENT_E | SEGMENT_F,             // 0
     SEGMENT_B | SEGMENT_C,                                                             // 1
@@ -71,6 +71,7 @@ static const uint8_t NUMBERS[10] = {
     SEGMENT_A | SEGMENT_B | SEGMENT_C | SEGMENT_D | SEGMENT_E | SEGMENT_F | SEGMENT_G, // 8
     SEGMENT_A | SEGMENT_B | SEGMENT_C | SEGMENT_D | SEGMENT_F | SEGMENT_G,             // 9
 };
+
 /* === Private function declarations =============================================================================== */
 
 /**
@@ -189,7 +190,7 @@ void DisplayRefresh(display_p self) {
     self->driver->TurnOnDigit(self->current_digit);
 }
 
-int DisplayBlinkingDigits(display_p self, uint8_t from, uint8_t to, uint16_t number_calls_off) {
+int DisplayBlinkingDigits(display_p self, uint8_t from, uint8_t to, uint16_t number_calls) {
     int result = 0;
 
     if (from > to || from >= self->digits || !self) {
@@ -197,14 +198,14 @@ int DisplayBlinkingDigits(display_p self, uint8_t from, uint8_t to, uint16_t num
     } else {
         self->blinking->from = from;
         self->blinking->to = to;
-        self->blinking->calls = number_calls_off * 2;
+        self->blinking->calls = number_calls * 2;
         self->blinking->count = 0;
     }
 
     return result;
 }
 
-int DisplayDot(display_p self, uint8_t digit, bool on, uint16_t number_of_calls_off) {
+int DisplayDot(display_p self, uint8_t digit, bool on, uint16_t number_of_calls) {
     int result = 0;
     if (!self || digit >= self->digits) {
         result = -1;
@@ -215,8 +216,8 @@ int DisplayDot(display_p self, uint8_t digit, bool on, uint16_t number_of_calls_
             self->video_memory[digit] = (~SEGMENT_DOT_MASK) & self->video_memory[digit];
         }
 
-        if (number_of_calls_off) {
-            self->blinking->dots_calls[digit] = 2 * number_of_calls_off;
+        if (number_of_calls) {
+            self->blinking->dots_calls[digit] = 2 * number_of_calls;
         } else {
             self->blinking->dots_calls[digit] = 0;
         }

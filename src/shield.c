@@ -89,14 +89,15 @@ static void SegmentsInit(void);
 static void TurnOffDigits(void);
 
 /**
- * @brief Función que prende el digito que se le indica
+ * @brief Función que prende el dígito que se le indica
  *
- * @param digit número de digito que se desea prender
+ * @param digit número de dígito que se desea prender
  */
 static void TurnOnDigit(uint8_t digit);
 
 /**
- * @brief Función que apaga todo los segmentos y luego prende los segmentos que se le indican.
+ * @brief Función que apaga todos los segmentos y luego prende los segmentos que se le indican. Se le envía un byte cuyo
+ * LSB corresponde al segmento a, el siguiente bit es el b. El MSB es el punto, el anterior corresponde al segmento g.
  *
  * @param segments
  */
@@ -207,7 +208,7 @@ static void TurnOffDigits(void) {
 }
 
 static void TurnOnDigit(uint8_t digit) {
-    Chip_GPIO_SetValue(LPC_GPIO_PORT, DIGITS_GPIO, (1 << (3 - digit)) & DIGITS_MASK);
+    Chip_GPIO_SetValue(LPC_GPIO_PORT, DIGITS_GPIO, (1 << digit) & DIGITS_MASK);
 }
 
 static void UpdateSegments(uint8_t segments) {
