@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "limits": "c",
-        "stdint.h": "c"
+        "stdint.h": "c",
+        "clock.h": "c"
     }
 }

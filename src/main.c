@@ -60,24 +60,23 @@
 /* === Public function implementation ========================================================= */
 
 int main(void) {
-    uint8_t value[] = {3, 2, 1, 0};
+    uint8_t value[] = {0, 1, 2, 3};
 
     shield_p shield = ShieldCreate();
 
     DisplayWriteBCD(shield->display, value, sizeof(value));
     DisplayBlinkingDigits(shield->display, 2, 3, 25);
     DisplayDot(shield->display, 0, true, 20);
-    DisplayDot(shield->display, 1, true, 20);
-    DisplayDot(shield->display, 2, true, 40);
-    DisplayDot(shield->display, 3, true, 40);
+    DisplayDot(shield->display, 1, true, 40);
+    DisplayDot(shield->display, 2, true, 60);
+    DisplayDot(shield->display, 3, true, 80);
 
     while (true) {
         DisplayRefresh(shield->display);
-        // for (int index = 0; index < 100; index++) {
+
         for (int delay = 0; delay < 25000; delay++) {
             __asm("NOP");
         }
-        //}
     }
 }
 

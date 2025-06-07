@@ -19,7 +19,7 @@ SPDX-License-Identifier: MIT
 
 /** @file shield.c
  *
- * Se debe incluir el archivo .h de la placa, con la configuracion de los pines
+ * Se debe incluir el archivo .h de la placa, con la configuración de los pines
  *
  ** @brief Codigo fuente del modulo de poncho para el proyecto reloj - Electrónica 4 2025
  **/
@@ -49,15 +49,15 @@ static struct shield_s instances[SHIELD_MAX_INSTANCE] = {0}; //!< Array con los 
 
 #ifndef USE_DYNAMIC_MEMORY
 /**
- * @brief Funcion para crear un poncho si no se usa memoria dinamica
+ * @brief Función para crear un poncho si no se usa memoria dinamica
  *
  * @return shield_p devuelve una referencia al poncho
  */
-static shield_p CreateInstance();
+static struct shield_s * CreateInstance();
 #endif
 
 /**
- * @brief Funcion para configurar los pines de entrada de la placa recién creada
+ * @brief Función para configurar los pines de entrada de la placa recién creada
  *
  * @param self // referencia de la placa que se crea
  */
@@ -71,13 +71,13 @@ static void InputInit(struct shield_s * self);
 static void OutputInit(struct shield_s * self);
 
 /**
- * @brief Funcion que configura los pines de habilitacion de los digitos y los inicializa apagados
+ * @brief Función que configura los pines de habilitacion de los digitos y los inicializa apagados
  *
  */
 static void DigitisInit(void);
 
 /**
- * @brief Funcion que configura los pines de los segmentos de cada display y los inicializa apagados
+ * @brief Función que configura los pines de los segmentos de cada display y los inicializa apagados
  *
  */
 static void SegmentsInit(void);
@@ -89,14 +89,15 @@ static void SegmentsInit(void);
 static void TurnOffDigits(void);
 
 /**
- * @brief Función que prende el digito que se le indica
+ * @brief Función que prende el dígito que se le indica
  *
- * @param digit número de digito que se desea prender
+ * @param digit número de dígito que se desea prender
  */
 static void TurnOnDigit(uint8_t digit);
 
 /**
- * @brief Función que apaga todo los segmentos y luego prende los segmentos que se le indican.
+ * @brief Función que apaga todos los segmentos y luego prende los segmentos que se le indican. Se le envía un byte cuyo
+ * LSB corresponde al segmento a, el siguiente bit es el b. El MSB es el punto, el anterior corresponde al segmento g.
  *
  * @param segments
  */
@@ -116,8 +117,8 @@ static const struct display_controller_s display_driver = {
 /* === Private function definitions ================================================================================ */
 
 #ifndef USE_DYNAMIC_MEMORY
-static shield_p CreateInstance() {
-    shield_p self = NULL;
+static struct shield_s * CreateInstance() {
+    struct shield_s * self = NULL;
     int i;
 
     for (i = 0; i < SHIELD_MAX_INSTANCE; i++) {
@@ -207,7 +208,7 @@ static void TurnOffDigits(void) {
 }
 
 static void TurnOnDigit(uint8_t digit) {
-    Chip_GPIO_SetValue(LPC_GPIO_PORT, DIGITS_GPIO, (1 << (3 - digit)) & DIGITS_MASK);
+    Chip_GPIO_SetValue(LPC_GPIO_PORT, DIGITS_GPIO, (1 << digit) & DIGITS_MASK);
 }
 
 static void UpdateSegments(uint8_t segments) {
@@ -223,7 +224,7 @@ static void UpdateSegments(uint8_t segments) {
 shield_p ShieldCreate(void) {
     struct shield_s * self = NULL;
 
-#ifdef SHIELD_MAX_INSTANCE
+#ifdef USE_DYNAMIC_MEMORY
     self = malloc(sizeof(struct shield_s));
 #else
     self = CreateInstance();
