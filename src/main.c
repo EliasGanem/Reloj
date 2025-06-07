@@ -66,7 +66,7 @@ int main(void) {
 
     DisplayWriteBCD(shield->display, value, sizeof(value));
     DisplayBlinkingDigits(shield->display, 2, 3, 25);
-    DisplayDot(shield->display, 0, false, 20);
+    DisplayDot(shield->display, 0, true, 20);
     DisplayDot(shield->display, 1, true, 40);
     DisplayDot(shield->display, 2, true, 60);
     DisplayDot(shield->display, 3, true, 80);

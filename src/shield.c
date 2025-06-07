@@ -53,7 +53,7 @@ static struct shield_s instances[SHIELD_MAX_INSTANCE] = {0}; //!< Array con los 
  *
  * @return shield_p devuelve una referencia al poncho
  */
-static shield_p CreateInstance();
+static struct shield_s * CreateInstance();
 #endif
 
 /**
@@ -117,8 +117,8 @@ static const struct display_controller_s display_driver = {
 /* === Private function definitions ================================================================================ */
 
 #ifndef USE_DYNAMIC_MEMORY
-static shield_p CreateInstance() {
-    shield_p self = NULL;
+static struct shield_s * CreateInstance() {
+    struct shield_s * self = NULL;
     int i;
 
     for (i = 0; i < SHIELD_MAX_INSTANCE; i++) {
@@ -224,7 +224,7 @@ static void UpdateSegments(uint8_t segments) {
 shield_p ShieldCreate(void) {
     struct shield_s * self = NULL;
 
-#ifdef SHIELD_MAX_INSTANCE
+#ifdef USE_DYNAMIC_MEMORY
     self = malloc(sizeof(struct shield_s));
 #else
     self = CreateInstance();

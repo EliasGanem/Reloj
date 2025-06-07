@@ -34,6 +34,10 @@ SPDX-License-Identifier: MIT
 
 /* === Macros definitions ========================================================================================== */
 
+#ifndef DISPLAY_MAX_INSTANCE
+#define DISPLAY_MAX_INSTANCE 1
+#endif
+
 #ifndef DISPLAY_MAX_DIGITS
 #define DISPLAY_MAX_DIGITS 2
 #endif
@@ -56,7 +60,15 @@ struct display_s {
     uint8_t video_memory[DISPLAY_MAX_DIGITS]; //!< array utilizado para memorizar los segmentos prendidos de cada //!<
     //!< display
     uint8_t current_digit;
+#ifndef USE_DYNAMIC_MEMORY
+    bool used; //!< indica si el struc esta siendo usado en caso de no usar memoria dinamica
+#endif
 };
+
+#ifndef USE_DYNAMIC_MEMORY
+//! Array que contiene los display creados si no se utuliza memoria dinámica.
+static struct display_s instances[DISPLAY_MAX_INSTANCE] = {0};
+#endif
 
 //! Array con los segmentos que se deben prender según el número en bcd.
 static const uint8_t NUMBERS[10] = {
@@ -73,6 +85,15 @@ static const uint8_t NUMBERS[10] = {
 };
 
 /* === Private function declarations =============================================================================== */
+
+#ifndef USE_DYNAMIC_MEMORY
+/**
+ * @brief Función para crear un display si no se usa memoria dinámica
+ *
+ * @return shield_p devuelve una referencia al display creado
+ */
+static display_p CreateInstance();
+#endif
 
 /**
  * @brief Función para saber si hay que apagar los segmentos dentro de DisplayRefresh
@@ -95,6 +116,23 @@ static int TurnOffDots(display_p self);
 /* === Public variable definitions ================================================================================= */
 
 /* === Private function definitions ================================================================================ */
+
+#ifndef USE_DYNAMIC_MEMORY
+static display_p CreateInstance() {
+    display_p self = NULL;
+    int i;
+
+    for (i = 0; i < SHIELD_MAX_INSTANCE; i++) {
+        if (!instances[i].used) {
+            instances[i].used = true;
+            self = &instances[i];
+            break;
+        }
+    }
+
+    return self;
+}
+#endif
 
 int TurnOffSegments(display_p self) {
     int result = 0;
@@ -123,7 +161,13 @@ static int TurnOffDots(display_p self) {
 /* === Public function definitions ================================================================================= */
 
 display_p DisplayCreate(uint8_t number_of_digits, display_controller_p driver) {
-    display_p self = malloc(sizeof(struct display_s));
+    display_p self = NULL;
+
+#ifdef USE_DYNAMIC_MEMORY
+    self = malloc(sizeof(struct display_s));
+#else
+    self = CreateInstance();
+#endif
 
     if (number_of_digits > DISPLAY_MAX_DIGITS) {
         number_of_digits = DISPLAY_MAX_DIGITS;
