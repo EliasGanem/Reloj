@@ -75,8 +75,8 @@ void setUp(void) {
     clock = ClockCreate(CLOCK_TICKS_PER_SECONDS);
 }
 
-static void SimulateSeconds(clock_p clock, uint8_t seconds) {
-    for (uint8_t i = 0; i < CLOCK_TICKS_PER_SECONDS * seconds; i++) {
+static void SimulateSeconds(clock_p clock, int seconds) {
+    for (int i = 0; i < CLOCK_TICKS_PER_SECONDS * seconds; i++) {
         ClockNewTick(clock);
     }
 }
@@ -121,6 +121,15 @@ void test_clock_advance_ten_seconds(void) {
     SimulateSeconds(clock, 10);
 
     TEST_ASSERT_TIME(0, 0, 0, 0, 1, 0);
+}
+
+// Después de n ciclos de reloj la hora avanza 55 segundos
+void test_clock_advance_fiftyfive_seconds(void) {
+
+    ClockSetTime(clock, &(clock_time_u){0});
+    SimulateSeconds(clock, 55);
+
+    TEST_ASSERT_TIME(0, 0, 0, 0, 5, 5);
 }
 
 /* === End of documentation ======================================================================================== */
