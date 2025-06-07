@@ -132,4 +132,12 @@ void test_clock_advance_fiftyfive_seconds(void) {
     TEST_ASSERT_TIME(0, 0, 0, 0, 5, 5);
 }
 
+// Después de n ciclos de reloj la hora avanza un minuto
+void test_clock_advance_one_minute(void) {
+
+    ClockSetTime(clock, &(clock_time_u){0});
+    SimulateSeconds(clock, 60);
+
+    TEST_ASSERT_TIME(0, 0, 0, 1, 0, 0);
+}
 /* === End of documentation ======================================================================================== */
