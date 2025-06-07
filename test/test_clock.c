@@ -48,6 +48,15 @@ y un día completo.
 /* === Macros definitions ========================================================================================== */
 
 #define CLOCK_TICKS_PER_SECONDS 5
+#define TEST_ASSERT_TIME(hours_ten, hours_unit, minutes_ten, minutes_unit, seconds_ten, seconds_unit)                  \
+    clock_time_u current_time = {0};                                                                                   \
+    TEST_ASSERT_TRUE_MESSAGE(ClockGetTime(clock, &current_time), "Clock has invalid time");                            \
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(seconds_unit, current_time.bcd[0], "Diference in the unit of seconds");            \
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(seconds_ten, current_time.bcd[1], "Diference in the ten of seconds");              \
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(minutes_unit, current_time.bcd[2], "Diference in the unit of minutes");            \
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(minutes_ten, current_time.bcd[3], "Diference in the ten of minutes");              \
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(hours_unit, current_time.bcd[4], "Diference in the unit of hours");                \
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(hours_ten, current_time.bcd[5], "Diference in the ten of hours");
 
 /* === Private data type declarations ============================================================================== */
 
@@ -57,9 +66,15 @@ y un día completo.
 
 /* === Public variable definitions ================================================================================= */
 
+clock_p clock;
+
 /* === Private function definitions ================================================================================ */
 
-void SimulateSeconds(clock_p clock, uint8_t seconds) {
+void setUp(void) {
+    clock = ClockCreate(CLOCK_TICKS_PER_SECONDS);
+}
+
+static void SimulateSeconds(clock_p clock, uint8_t seconds) {
     for (uint8_t i = 0; i < CLOCK_TICKS_PER_SECONDS * seconds; i++) {
         ClockNewTick(clock);
     }
@@ -73,50 +88,38 @@ void test_init_with_invalid_time(void) {
         .bcd = {1, 2, 3, 4, 5, 6},
     };
 
-    clock_p clock = ClockCreate(CLOCK_TICKS_PER_SECONDS);
+    clock_p local_clock = ClockCreate(CLOCK_TICKS_PER_SECONDS);
 
-    TEST_ASSERT_FALSE(ClockGetTime(clock, &current_time));
+    TEST_ASSERT_FALSE(ClockGetTime(local_clock, &current_time));
     TEST_ASSERT_EACH_EQUAL_UINT8(0, current_time.bcd, 6);
 }
 
 // Al ajustar la hora el reloj queda en hora y es válida.
 void test_set_up_and_adjust_with_valid_time(void) {
     static const clock_time_u new_time = {
-        .time =
-            {
-                .hours = {4, 1},
-                .minutes = {5, 3},
-                .seconds = {2, 1},
-            },
+        .time = {.hours = {4, 1}, .minutes = {5, 3}, .seconds = {2, 1}},
     };
-    clock_time_u current_time = {0};
 
-    clock_p clock = ClockCreate(CLOCK_TICKS_PER_SECONDS);
     TEST_ASSERT_TRUE(ClockSetTime(clock, &new_time));
-
-    TEST_ASSERT_TRUE(ClockGetTime(clock, &current_time));
-    TEST_ASSERT_EQUAL_UINT8_ARRAY(new_time.bcd, current_time.bcd, sizeof(clock_time_u));
+    TEST_ASSERT_TIME(1, 4, 3, 5, 1, 2);
 }
 
 // Después de n ciclos de reloj la hora avanza un segundo
 void test_clock_advance_one_second(void) {
-    clock_time_u current_time = {0};
-    static const clock_time_u espected_value = {
-        .time =
-            {
-                .hours = {0, 0},
-                .minutes = {0, 0},
-                .seconds = {1, 0},
-            },
-    };
-
-    clock_p clock = ClockCreate(CLOCK_TICKS_PER_SECONDS);
 
     ClockSetTime(clock, &(clock_time_u){0});
     SimulateSeconds(clock, 1);
 
-    ClockGetTime(clock, &current_time);
-    TEST_ASSERT_EQUAL_UINT8_ARRAY(espected_value.bcd, current_time.bcd, sizeof(clock_time_u));
+    TEST_ASSERT_TIME(0, 0, 0, 0, 0, 1);
+}
+
+// Después de n ciclos de reloj la hora avanza 10 segundos
+void test_clock_advance_ten_seconds(void) {
+
+    ClockSetTime(clock, &(clock_time_u){0});
+    SimulateSeconds(clock, 10);
+
+    TEST_ASSERT_TIME(0, 0, 0, 0, 1, 0);
 }
 
 /* === End of documentation ======================================================================================== */
