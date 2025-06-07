@@ -59,9 +59,10 @@ typedef union {
  *
  * Solo se puede crear un único reloj
  *
+ * @param uint16_t es la cantidad de veces que se llama a @ref ClockNewTick que equivalena  un segundo.
  * @return clock_p
  */
-clock_p ClockCreate(void);
+clock_p ClockCreate(uint16_t ticks_per_second);
 
 /**
  * @brief Funcion para obtener la hora actual.
@@ -83,6 +84,8 @@ int ClockGetTime(clock_p clock, clock_time_u * current_time);
  * @return int
  */
 int ClockSetTime(clock_p clock, const clock_time_u * new_time);
+
+void ClockNewTick(clock_p clock);
 
 /* === End of conditional blocks =================================================================================== */
 

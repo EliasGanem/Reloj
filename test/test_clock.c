@@ -35,6 +35,7 @@ y un día completo.
 - Probar que devulve ClockGetTime cuando le pido la hora
 - Ajustar la hora con valores invalidso y ver que los rechaza.
 - Verificar cuando no puede crear el reloj
+- Probar reloj con una frecuencia distinta
  *
  */
 
@@ -46,6 +47,8 @@ y un día completo.
 
 /* === Macros definitions ========================================================================================== */
 
+#define CLOCK_TICKS_PER_SECONDS 5
+
 /* === Private data type declarations ============================================================================== */
 
 /* === Private function declarations =============================================================================== */
@@ -56,6 +59,12 @@ y un día completo.
 
 /* === Private function definitions ================================================================================ */
 
+void SimulateSeconds(clock_p clock, uint8_t seconds) {
+    for (uint8_t i = 0; i < CLOCK_TICKS_PER_SECONDS * seconds; i++) {
+        ClockNewTick(clock);
+    }
+}
+
 /* === Public function definitions ===+============================================================================= */
 
 // Al inicializar el reloj está en 00:00 y con hora invalida.
@@ -64,7 +73,7 @@ void test_init_with_invalid_time(void) {
         .bcd = {1, 2, 3, 4, 5, 6},
     };
 
-    clock_p clock = ClockCreate();
+    clock_p clock = ClockCreate(CLOCK_TICKS_PER_SECONDS);
 
     TEST_ASSERT_FALSE(ClockGetTime(clock, &current_time));
     TEST_ASSERT_EACH_EQUAL_UINT8(0, current_time.bcd, 6);
@@ -82,11 +91,32 @@ void test_set_up_and_adjust_with_valid_time(void) {
     };
     clock_time_u current_time = {0};
 
-    clock_p clock = ClockCreate();
+    clock_p clock = ClockCreate(CLOCK_TICKS_PER_SECONDS);
     TEST_ASSERT_TRUE(ClockSetTime(clock, &new_time));
 
     TEST_ASSERT_TRUE(ClockGetTime(clock, &current_time));
-    TEST_ASSERT_EQUAL_UINT8_ARRAY(new_time.bcd, current_time.bcd, 6);
+    TEST_ASSERT_EQUAL_UINT8_ARRAY(new_time.bcd, current_time.bcd, sizeof(clock_time_u));
+}
+
+// Después de n ciclos de reloj la hora avanza un segundo
+void test_clock_advance_one_second(void) {
+    clock_time_u current_time = {0};
+    static const clock_time_u espected_value = {
+        .time =
+            {
+                .hours = {0, 0},
+                .minutes = {0, 0},
+                .seconds = {1, 0},
+            },
+    };
+
+    clock_p clock = ClockCreate(CLOCK_TICKS_PER_SECONDS);
+
+    ClockSetTime(clock, &(clock_time_u){0});
+    SimulateSeconds(clock, 1);
+
+    ClockGetTime(clock, &current_time);
+    TEST_ASSERT_EQUAL_UINT8_ARRAY(espected_value.bcd, current_time.bcd, sizeof(clock_time_u));
 }
 
 /* === End of documentation ======================================================================================== */

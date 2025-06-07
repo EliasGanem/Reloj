@@ -47,11 +47,12 @@ struct clock_s {
 
 /* === Public function definitions ================================================================================= */
 
-clock_p ClockCreate() {
+clock_p ClockCreate(uint16_t ticks_per_second) {
     static struct clock_s self[1];
 
     memset(self, 0, sizeof(struct clock_s));
     self->valid = false;
+    (void)ticks_per_second;
 
     return self;
 }
@@ -69,6 +70,10 @@ int ClockSetTime(clock_p self, const clock_time_u * new_time) {
     memcpy(&self->current_time, new_time, sizeof(clock_time_u));
 
     return 1;
+}
+
+void ClockNewTick(clock_p self) {
+    self->current_time.time.seconds[0] = 1;
 }
 
 /* === End of documentation ======================================================================================== */
