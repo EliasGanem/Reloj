@@ -42,6 +42,23 @@ struct clock_s {
 
 /* === Private function declarations =============================================================================== */
 
+/**
+ * @brief Funcion que verifica si la hora es valida
+ *
+ * Su objetivo es facilitar la lectura de @ref ClockSetTime().
+ *
+ * @param time tiempo
+ * @return retorna true si el la hora es valida.
+ */
+static bool ClockValidTime(const clock_time_u * time);
+
+/**
+ * @brief Funcion que convierte un uint8_t en bcd
+ *
+ * Es resultado respeta siguiente formato: las unidades están en el índice 0, las decenas en el ínidce 1, ..
+ *
+ * @param bcd arreglo de uint8_t en el que almacena el resultado.
+ */
 static void Uint8ToBCD(uint8_t, uint8_t * bcd);
 
 /**
@@ -56,6 +73,20 @@ static void ClockSecondsToTime(clock_p clock);
 /* === Public variable definitions ================================================================================= */
 
 /* === Private function definitions ================================================================================ */
+
+static bool ClockValidTime(const clock_time_u * time) {
+    bool result = true;
+
+    if ((time->bcd[5] >= 2) && (time->bcd[4] > 4)) {
+        result = false;
+    } else if ((time->bcd[3] >= 6) && (time->bcd[2] > 0)) {
+        result = false;
+    } else if ((time->bcd[1] >= 6) && (time->bcd[0] > 0)) {
+        result = false;
+    }
+
+    return result;
+}
 
 static void Uint8ToBCD(uint8_t integer, uint8_t * bcd) {
     for (int i = 0; i < 8; i++) {
@@ -104,11 +135,16 @@ int ClockGetTime(clock_p self, clock_time_u * current_time) {
 }
 
 int ClockSetTime(clock_p self, const clock_time_u * new_time) {
-    self->valid = true;
+    int result = 1;
 
-    memcpy(&self->current_time, new_time, sizeof(clock_time_u));
+    if (!ClockValidTime(new_time)) {
+        result = 0;
+    } else {
+        self->valid = true;
+        memcpy(&self->current_time, new_time, sizeof(clock_time_u));
+    }
 
-    return 1;
+    return result;
 }
 
 void ClockNewTick(clock_p self) {
@@ -117,6 +153,10 @@ void ClockNewTick(clock_p self) {
     if (self->ticks_counter == self->ticks_per_second) {
         self->ticks_counter = 0;
         self->seconds_counter++;
+    }
+
+    if (self->seconds_counter == 86400) {
+        self->seconds_counter = 0;
     }
 
     ClockSecondsToTime(self);

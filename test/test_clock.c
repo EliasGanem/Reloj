@@ -27,16 +27,16 @@ SPDX-License-Identifier: MIT
 - Al ajustar la hora el reloj queda en hora y es válida.
 - Después de n ciclos de reloj la hora avanza un segundo, diez segundos, un minutos, diez minutos, una hora, diez horas
 y un día completo.
+- Ver que al superar 24hs, vuelva a cero
+- Ajustar la hora con valores invalidos y ver que los rechaza.
 - Fijar la hora de la alarma y consultarla.
 - Fijar la alarma y avanzar el reloj para que suene.
 - Fijar la alarma, deshabilitarla y avanzar el reloj para no suene.
 - Hacer sonar la alarma y posponerla.
 - Hacer sonar la alarma y cancelarla hasta el otro dia..
 - Probar que devulve ClockGetTime cuando le pido la hora
-- Ajustar la hora con valores invalidso y ver que los rechaza.
 - Verificar cuando no puede crear el reloj
 - Probar reloj con una frecuencia distinta
-- Ver que al superar 24hs, vuelva a cero
  *
  */
 
@@ -175,6 +175,51 @@ void test_clock_advance_ten_hours(void) {
     SimulateSeconds(clock, 36000);
 
     TEST_ASSERT_TIME(1, 0, 0, 0, 0, 0);
+}
+
+// 11-Al superar 24hs vuelve a 00:00:00
+void test_clock_advance_one_day(void) {
+
+    ClockSetTime(clock, &(clock_time_u){0});
+    SimulateSeconds(clock, 86400);
+
+    TEST_ASSERT_TIME(0, 0, 0, 0, 0, 0);
+}
+
+// 12-Ajustar la hora con valor invalido de horas y ver que no los guarda.
+void test_set_up_with_invalid_hour(void) {
+    ClockSetTime(clock, &(clock_time_u){0});
+
+    static const clock_time_u new_time = {
+        .time = {.hours = {5, 2}, .minutes = {0, 0}, .seconds = {0, 0}},
+    };
+    TEST_ASSERT_EQUAL_INT(0, ClockSetTime(clock, &new_time));
+
+    TEST_ASSERT_TIME(0, 0, 0, 0, 0, 0);
+}
+
+// 13-Ajustar la hora con valor invalido de minutos y ver que no los guarda.
+void test_set_up_with_invalid_minutes(void) {
+    ClockSetTime(clock, &(clock_time_u){0});
+
+    static const clock_time_u new_time = {
+        .time = {.hours = {0, 0}, .minutes = {1, 6}, .seconds = {0, 0}},
+    };
+    TEST_ASSERT_EQUAL_INT(0, ClockSetTime(clock, &new_time));
+
+    TEST_ASSERT_TIME(0, 0, 0, 0, 0, 0);
+}
+
+// 14-Ajustar la hora con valor invalido de segundos y ver que no los guarda.
+void test_set_up_with_invalid_seconds(void) {
+    ClockSetTime(clock, &(clock_time_u){0});
+
+    static const clock_time_u new_time = {
+        .time = {.hours = {0, 0}, .minutes = {0, 0}, .seconds = {1, 6}},
+    };
+    TEST_ASSERT_EQUAL_INT(0, ClockSetTime(clock, &new_time));
+
+    TEST_ASSERT_TIME(0, 0, 0, 0, 0, 0);
 }
 
 /* === End of documentation ======================================================================================== */
