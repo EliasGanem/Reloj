@@ -45,12 +45,12 @@ extern "C" {
 
 //! Estructura que representa el poncho
 typedef struct shield_s {
-    digital_input_p accept;    //! boton de acceptar
-    digital_input_p cancel;    //! boton de cancelar
-    digital_input_p set_time;  //! boton para cambiar la hora
-    digital_input_p set_alarm; //! boton para cambiar la alarma
-    digital_input_p incremet;  //! boton para incrementar
-    digital_input_p decrement; //! boton para decrementar
+    digital_input_p accept;    //! botón de acceptar
+    digital_input_p cancel;    //! botón de cancelar
+    digital_input_p set_time;  //! botón para cambiar la hora
+    digital_input_p set_alarm; //! botón para cambiar la alarma
+    digital_input_p incremet;  //! botón para incrementar
+    digital_input_p decrement; //! botón para decrementar
     digital_output_p buzzer;   //! indicador de alarma
     display_p display;         //! display de 7 segmentos para mostrar la hora
 #ifndef USE_DYNAMIC_MEMORY
@@ -62,7 +62,7 @@ typedef struct shield_s {
 
 /* === Public function declarations ================================================================================ */
 /**
- * @brief Funcion para crear un pocnho
+ * @brief Función para crear un pocnho
  *
  * @return shield_p referencia al poncho
  */

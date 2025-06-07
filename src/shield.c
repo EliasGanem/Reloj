@@ -19,7 +19,7 @@ SPDX-License-Identifier: MIT
 
 /** @file shield.c
  *
- * Se debe incluir el archivo .h de la placa, con la configuracion de los pines
+ * Se debe incluir el archivo .h de la placa, con la configuración de los pines
  *
  ** @brief Codigo fuente del modulo de poncho para el proyecto reloj - Electrónica 4 2025
  **/
@@ -49,7 +49,7 @@ static struct shield_s instances[SHIELD_MAX_INSTANCE] = {0}; //!< Array con los 
 
 #ifndef USE_DYNAMIC_MEMORY
 /**
- * @brief Funcion para crear un poncho si no se usa memoria dinamica
+ * @brief Función para crear un poncho si no se usa memoria dinamica
  *
  * @return shield_p devuelve una referencia al poncho
  */
@@ -57,7 +57,7 @@ static shield_p CreateInstance();
 #endif
 
 /**
- * @brief Funcion para configurar los pines de entrada de la placa recién creada
+ * @brief Función para configurar los pines de entrada de la placa recién creada
  *
  * @param self // referencia de la placa que se crea
  */
@@ -71,13 +71,13 @@ static void InputInit(struct shield_s * self);
 static void OutputInit(struct shield_s * self);
 
 /**
- * @brief Funcion que configura los pines de habilitacion de los digitos y los inicializa apagados
+ * @brief Función que configura los pines de habilitacion de los digitos y los inicializa apagados
  *
  */
 static void DigitisInit(void);
 
 /**
- * @brief Funcion que configura los pines de los segmentos de cada display y los inicializa apagados
+ * @brief Función que configura los pines de los segmentos de cada display y los inicializa apagados
  *
  */
 static void SegmentsInit(void);

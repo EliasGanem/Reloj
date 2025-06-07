@@ -173,7 +173,7 @@ void DisplayRefresh(display_p self) {
         }
     }
 
-    // Actualiza el contador de todos los puntos
+    // Actualiza el contador de todos los puntos que tienen que parpadear
     if (self->current_digit == 0) {
         for (uint8_t i = 0; i < self->digits; i++) {
             if (self->blinking->dots_calls[i]) {
@@ -216,11 +216,7 @@ int DisplayDot(display_p self, uint8_t digit, bool on, uint16_t number_of_calls)
             self->video_memory[digit] = (~SEGMENT_DOT_MASK) & self->video_memory[digit];
         }
 
-        if (number_of_calls) {
-            self->blinking->dots_calls[digit] = 2 * number_of_calls;
-        } else {
-            self->blinking->dots_calls[digit] = 0;
-        }
+        self->blinking->dots_calls[digit] = 2 * number_of_calls;
     }
 
     return result;
