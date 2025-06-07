@@ -35,15 +35,54 @@ SPDX-License-Identifier: MIT
 struct clock_s {
     clock_time_u current_time;
     bool valid;
+    uint32_t seconds_counter;
+    uint16_t ticks_per_second;
+    uint8_t ticks_counter;
 };
 
 /* === Private function declarations =============================================================================== */
+
+static void Uint8ToBCD(uint8_t, uint8_t * bcd);
+
+/**
+ * @brief Función para convertir Segundos a hora,minutos y segundos en formato BCD
+ *
+ * @param clock referencia del reloj
+ */
+static void ClockSecondsToTime(clock_p clock);
 
 /* === Private variable definitions ================================================================================ */
 
 /* === Public variable definitions ================================================================================= */
 
 /* === Private function definitions ================================================================================ */
+
+static void Uint8ToBCD(uint8_t integer, uint8_t * bcd) {
+    for (int i = 0; i < 8; i++) {
+        bcd[i] = integer % 10;
+        integer = integer / 10;
+    }
+}
+
+static void ClockSecondsToTime(clock_p self) {
+    uint8_t seconds, minutes, hours = 0;
+    uint8_t bcd[8] = {0};
+
+    seconds = self->seconds_counter % 60;
+    Uint8ToBCD(seconds, bcd);
+    self->current_time.bcd[0] = bcd[0];
+    self->current_time.bcd[1] = bcd[1];
+
+    minutes = (self->seconds_counter / 60) % 60;
+    Uint8ToBCD(minutes, bcd);
+    self->current_time.bcd[2] = bcd[2];
+    self->current_time.bcd[3] = bcd[3];
+
+    hours = (self->seconds_counter / 3600);
+    Uint8ToBCD(hours, bcd);
+    self->current_time.bcd[4] = bcd[4];
+    self->current_time.bcd[5] = bcd[5];
+}
 
 /* === Public function definitions ================================================================================= */
 
@@ -52,7 +91,7 @@ clock_p ClockCreate(uint16_t ticks_per_second) {
 
     memset(self, 0, sizeof(struct clock_s));
     self->valid = false;
-    (void)ticks_per_second;
+    self->ticks_per_second = ticks_per_second;
 
     return self;
 }
@@ -73,7 +112,14 @@ int ClockSetTime(clock_p self, const clock_time_u * new_time) {
 }
 
 void ClockNewTick(clock_p self) {
-    self->current_time.time.seconds[0] = 1;
+    self->ticks_counter++;
+
+    if (self->ticks_counter == self->ticks_per_second) {
+        self->ticks_counter = 0;
+        self->seconds_counter++;
+    }
+
+    ClockSecondsToTime(self);
 }
 
 /* === End of documentation ======================================================================================== */

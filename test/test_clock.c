@@ -36,6 +36,7 @@ y un día completo.
 - Ajustar la hora con valores invalidso y ver que los rechaza.
 - Verificar cuando no puede crear el reloj
 - Probar reloj con una frecuencia distinta
+- Ver que al superar 24hs, vuelva a cero
  *
  */
 
