@@ -83,7 +83,7 @@ static void SimulateSeconds(clock_p clock, int seconds) {
 
 /* === Public function definitions ===+============================================================================= */
 
-// Al inicializar el reloj está en 00:00 y con hora invalida.
+// 1-Al inicializar el reloj está en 00:00 y con hora invalida.
 void test_init_with_invalid_time(void) {
     clock_time_u current_time = {
         .bcd = {1, 2, 3, 4, 5, 6},
@@ -95,7 +95,7 @@ void test_init_with_invalid_time(void) {
     TEST_ASSERT_EACH_EQUAL_UINT8(0, current_time.bcd, 6);
 }
 
-// Al ajustar la hora el reloj queda en hora y es válida.
+// 2-Al ajustar la hora el reloj queda en hora y es válida.
 void test_set_up_and_adjust_with_valid_time(void) {
     static const clock_time_u new_time = {
         .time = {.hours = {4, 1}, .minutes = {5, 3}, .seconds = {2, 1}},
@@ -105,7 +105,7 @@ void test_set_up_and_adjust_with_valid_time(void) {
     TEST_ASSERT_TIME(1, 4, 3, 5, 1, 2);
 }
 
-// Después de n ciclos de reloj la hora avanza un segundo
+// 3-Después de n ciclos de reloj la hora avanza un segundo
 void test_clock_advance_one_second(void) {
 
     ClockSetTime(clock, &(clock_time_u){0});
@@ -114,7 +114,7 @@ void test_clock_advance_one_second(void) {
     TEST_ASSERT_TIME(0, 0, 0, 0, 0, 1);
 }
 
-// Después de n ciclos de reloj la hora avanza 10 segundos
+// 4-Después de n ciclos de reloj la hora avanza 10 segundos
 void test_clock_advance_ten_seconds(void) {
 
     ClockSetTime(clock, &(clock_time_u){0});
@@ -123,7 +123,7 @@ void test_clock_advance_ten_seconds(void) {
     TEST_ASSERT_TIME(0, 0, 0, 0, 1, 0);
 }
 
-// Después de n ciclos de reloj la hora avanza 55 segundos
+// 5-Después de n ciclos de reloj la hora avanza 55 segundos
 void test_clock_advance_fiftyfive_seconds(void) {
 
     ClockSetTime(clock, &(clock_time_u){0});
@@ -132,7 +132,7 @@ void test_clock_advance_fiftyfive_seconds(void) {
     TEST_ASSERT_TIME(0, 0, 0, 0, 5, 5);
 }
 
-// Después de n ciclos de reloj la hora avanza un minuto
+// 6-Después de n ciclos de reloj la hora avanza un minuto
 void test_clock_advance_one_minute(void) {
 
     ClockSetTime(clock, &(clock_time_u){0});
@@ -140,4 +140,41 @@ void test_clock_advance_one_minute(void) {
 
     TEST_ASSERT_TIME(0, 0, 0, 1, 0, 0);
 }
+
+// 7-Después de n ciclos de reloj la hora avanza 10 minutos
+void test_clock_advance_ten_minutes(void) {
+
+    ClockSetTime(clock, &(clock_time_u){0});
+    SimulateSeconds(clock, 600);
+
+    TEST_ASSERT_TIME(0, 0, 1, 0, 0, 0);
+}
+
+// 8-Después de n ciclos de reloj la hora avanza 55 minutos
+void test_clock_advance_fiftyfive_minutes(void) {
+
+    ClockSetTime(clock, &(clock_time_u){0});
+    SimulateSeconds(clock, 3300);
+
+    TEST_ASSERT_TIME(0, 0, 5, 5, 0, 0);
+}
+
+// 9-Después de n ciclos de reloj la hora avanza una hora
+void test_clock_advance_one_hour(void) {
+
+    ClockSetTime(clock, &(clock_time_u){0});
+    SimulateSeconds(clock, 3600);
+
+    TEST_ASSERT_TIME(0, 1, 0, 0, 0, 0);
+}
+
+// 10-Después de n ciclos de reloj la hora avanza 10 horas
+void test_clock_advance_ten_hours(void) {
+
+    ClockSetTime(clock, &(clock_time_u){0});
+    SimulateSeconds(clock, 36000);
+
+    TEST_ASSERT_TIME(1, 0, 0, 0, 0, 0);
+}
+
 /* === End of documentation ======================================================================================== */

@@ -78,11 +78,10 @@ static void ClockSecondsToTime(clock_p self) {
     self->current_time.bcd[2] = bcd[0];
     self->current_time.bcd[3] = bcd[1];
 
-    (void)hours;
-    // hours = (self->seconds_counter / 3600);
-    // Uint8ToBCD(hours, bcd);
-    // self->current_time.bcd[4] = bcd[0];
-    // self->current_time.bcd[5] = bcd[1];
+    hours = (self->seconds_counter / 3600);
+    Uint8ToBCD(hours, bcd);
+    self->current_time.bcd[4] = bcd[0];
+    self->current_time.bcd[5] = bcd[1];
 }
 
 /* === Public function definitions ================================================================================= */
