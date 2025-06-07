@@ -47,13 +47,20 @@ typedef union {
         uint8_t hours[2];
     } time;
 
-    uint8_t time_bcd[6];
+    uint8_t bcd[6];
 } clock_time_u;
 
 /* === Public variable declarations ================================================================================ */
 
 /* === Public function declarations ================================================================================ */
 
+/**
+ * @brief Función para crear un reloj
+ *
+ * Solo se puede crear un único reloj
+ *
+ * @return clock_p
+ */
 clock_p ClockCreate(void);
 
 /**
@@ -67,6 +74,15 @@ clock_p ClockCreate(void);
  * @return int
  */
 int ClockGetTime(clock_p clock, clock_time_u * current_time);
+
+/**
+ * @brief Función para configurar la hora en el reloj
+ *
+ * @param clock referencia del reloj
+ * @param new_time valor ed la nueva hora del reloj
+ * @return int
+ */
+int ClockSetTime(clock_p clock, const clock_time_u * new_time);
 
 /* === End of conditional blocks =================================================================================== */
 

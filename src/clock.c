@@ -26,10 +26,16 @@ SPDX-License-Identifier: MIT
 #include "clock.h"
 #include <stddef.h>
 #include <string.h>
+#include <stdbool.h>
 
 /* === Macros definitions ========================================================================================== */
 
 /* === Private data type declarations ============================================================================== */
+
+struct clock_s {
+    clock_time_u current_time;
+    bool valid;
+};
 
 /* === Private function declarations =============================================================================== */
 
@@ -42,15 +48,27 @@ SPDX-License-Identifier: MIT
 /* === Public function definitions ================================================================================= */
 
 clock_p ClockCreate() {
-    return NULL;
+    static struct clock_s self[1];
+
+    memset(self, 0, sizeof(struct clock_s));
+    self->valid = false;
+
+    return self;
 }
 
 int ClockGetTime(clock_p self, clock_time_u * current_time) {
-    (void)self;
 
-    memset(current_time, 0, sizeof(clock_time_u));
+    memcpy(current_time, &self->current_time, sizeof(clock_time_u));
 
-    return 0;
+    return self->valid;
+}
+
+int ClockSetTime(clock_p self, const clock_time_u * new_time) {
+    self->valid = true;
+
+    memcpy(&self->current_time, new_time, sizeof(clock_time_u));
+
+    return 1;
 }
 
 /* === End of documentation ======================================================================================== */

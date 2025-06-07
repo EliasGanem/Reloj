@@ -33,6 +33,8 @@ y un día completo.
 - Hacer sonar la alarma y posponerla.
 - Hacer sonar la alarma y cancelarla hasta el otro dia..
 - Probar que devulve ClockGetTime cuando le pido la hora
+- Ajustar la hora con valores invalidso y ver que los rechaza.
+- Verificar cuando no puede crear el reloj
  *
  */
 
@@ -59,13 +61,32 @@ y un día completo.
 // Al inicializar el reloj está en 00:00 y con hora invalida.
 void test_init_with_invalid_time(void) {
     clock_time_u current_time = {
-        .time_bcd = {1, 2, 3, 4, 5, 6},
+        .bcd = {1, 2, 3, 4, 5, 6},
     };
 
     clock_p clock = ClockCreate();
 
     TEST_ASSERT_FALSE(ClockGetTime(clock, &current_time));
-    TEST_ASSERT_EACH_EQUAL_UINT8(0, current_time.time_bcd, 6);
+    TEST_ASSERT_EACH_EQUAL_UINT8(0, current_time.bcd, 6);
+}
+
+// Al ajustar la hora el reloj queda en hora y es válida.
+void test_set_up_and_adjust_with_valid_time(void) {
+    static const clock_time_u new_time = {
+        .time =
+            {
+                .hours = {4, 1},
+                .minutes = {5, 3},
+                .seconds = {2, 1},
+            },
+    };
+    clock_time_u current_time = {0};
+
+    clock_p clock = ClockCreate();
+    TEST_ASSERT_TRUE(ClockSetTime(clock, &new_time));
+
+    TEST_ASSERT_TRUE(ClockGetTime(clock, &current_time));
+    TEST_ASSERT_EQUAL_UINT8_ARRAY(new_time.bcd, current_time.bcd, 6);
 }
 
 /* === End of documentation ======================================================================================== */
