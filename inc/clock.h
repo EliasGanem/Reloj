@@ -38,8 +38,10 @@ extern "C" {
 
 /* === Public data type declarations =============================================================================== */
 
+//! Tipo de dato con la referencia a un reloj
 typedef struct clock_s * clock_p;
 
+//! Union para representar la hora en formato BCD y como Array
 typedef union {
     struct {
         uint8_t seconds[2];
@@ -49,6 +51,13 @@ typedef union {
 
     uint8_t bcd[6];
 } clock_time_u;
+
+/**
+ * @brief Puntero a una función que enciende la alarma correspondiente al reloj.
+ *
+ * @param clock referencia al reloj del que se habla.
+ */
+typedef void (*clock_turn_on_alarm)(clock_p clock);
 
 /* === Public variable declarations ================================================================================ */
 
@@ -60,9 +69,10 @@ typedef union {
  * Solo se puede crear un único reloj
  *
  * @param uint16_t es la cantidad de veces que se llama a @ref ClockNewTick que equivalena  un segundo.
+ * @param clock_tunr_on_alarm puntero a una funcion que enciende una alarma
  * @return clock_p
  */
-clock_p ClockCreate(uint16_t ticks_per_second);
+clock_p ClockCreate(uint16_t ticks_per_second, clock_turn_on_alarm turn_on_alarm);
 
 /**
  * @brief Funcion para obtener la hora actual.
@@ -81,11 +91,46 @@ int ClockGetTime(clock_p clock, clock_time_u * current_time);
  *
  * @param clock referencia del reloj
  * @param new_time valor ed la nueva hora del reloj
- * @return int
+ * @return devuelve 1 si ajusto la hora, si devuelve 0 es porque la hora es invalida
  */
 int ClockSetTime(clock_p clock, const clock_time_u * new_time);
 
 void ClockNewTick(clock_p clock);
+
+/**
+ * @brief Funcion para poner la alarma
+ *
+ * La hora a la que se pone la alarma debe ser valida, en caso de no serlo se deja el horario anterior. Si nunca se puso
+ * un horario para la alarma y la hora enviada es invalida entonces queda por defecto en 00:00:00
+ *
+ * @param clock referencia al reloj
+ * @param new_alarm hora
+ * @return devuelve
+ *  \li 1 si se definio un hoario para la alarma
+ *  \li 0 en caso de que la hora para la alarma sea invalida
+ */
+int ClockSetAlarm(clock_p clock, const clock_time_u * new_alarm);
+
+/**
+ * @brief Funcion para obtener el horario en el que la alarma suena
+ *
+ * @param clock referencia del reloj
+ * @param current_alarm variable pasada por referencia, en esta se devuelve la hora actual
+ * @return devuelde:
+ *  \li 0 en caso de que nunca se le dio un horario a la alarma o el horario es invalido
+ *  \li 1 si se puso la alarma
+ */
+int ClockGetAlarm(clock_p clock, clock_time_u * current_alarm);
+
+/**
+ * @brief Funcion para saber si la alarma del reloj esta activa
+ *
+ * @param clock referencia al reloj
+ * @return devuelve un entero cuyo valor es:
+ *  \li 1 si la alarma esta encendida
+ *  \li 0 si la alarma esta apagada
+ */
+int ClockIsAlarmOn(clock_p clock);
 
 /* === End of conditional blocks =================================================================================== */
 

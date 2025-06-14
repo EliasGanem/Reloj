@@ -34,10 +34,14 @@ SPDX-License-Identifier: MIT
 
 struct clock_s {
     clock_time_u current_time;
+    clock_time_u current_alarm;
     bool valid;
+    bool alarm_set;
+    bool alarm_is_on;
     uint32_t seconds_counter;
     uint16_t ticks_per_second;
     uint8_t ticks_counter;
+    clock_turn_on_alarm TurnOnAlarm;
 };
 
 /* === Private function declarations =============================================================================== */
@@ -117,12 +121,15 @@ static void ClockSecondsToTime(clock_p self) {
 
 /* === Public function definitions ================================================================================= */
 
-clock_p ClockCreate(uint16_t ticks_per_second) {
+clock_p ClockCreate(uint16_t ticks_per_second, clock_turn_on_alarm turn_on_alarm) {
     static struct clock_s self[1];
 
     memset(self, 0, sizeof(struct clock_s));
     self->valid = false;
+    self->alarm_set = false;
+    self->alarm_is_on = false;
     self->ticks_per_second = ticks_per_second;
+    self->TurnOnAlarm = turn_on_alarm;
 
     return self;
 }
@@ -160,6 +167,34 @@ void ClockNewTick(clock_p self) {
     }
 
     ClockSecondsToTime(self);
+
+    if (!memcmp(&self->current_time, &self->current_alarm, sizeof(clock_time_u))) {
+        self->alarm_is_on = true;
+        self->TurnOnAlarm(self);
+    }
+}
+
+int ClockSetAlarm(clock_p self, const clock_time_u * new_alarm) {
+
+    if (!ClockValidTime(new_alarm)) {
+        return 0;
+    } else {
+        self->alarm_set = true;
+        memcpy(&self->current_alarm, new_alarm, sizeof(clock_time_u));
+    }
+
+    return 1;
+}
+
+int ClockGetAlarm(clock_p self, clock_time_u * current_alarm) {
+
+    memcpy(current_alarm, &self->current_alarm, sizeof(clock_time_u));
+
+    return self->alarm_set;
+}
+
+int ClockIsAlarmOn(clock_p self) {
+    return self->alarm_is_on;
 }
 
 /* === End of documentation ======================================================================================== */

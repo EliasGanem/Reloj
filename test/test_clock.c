@@ -30,6 +30,9 @@ y un día completo.
 - Ver que al superar 24hs, vuelva a cero
 - Ajustar la hora con valores invalidos y ver que los rechaza.
 - Fijar la hora de la alarma y consultarla.
+- Controlar que al inicio la alamar no este puesta
+- Controlar que la hora que se setea en la alarma sea valida
+
 - Fijar la alarma y avanzar el reloj para que suene.
 - Fijar la alarma, deshabilitarla y avanzar el reloj para no suene.
 - Hacer sonar la alarma y posponerla.
@@ -45,40 +48,48 @@ y un día completo.
 #include "unity.h"
 
 #include "clock.h"
+#include <stdbool.h>
 
 /* === Macros definitions ========================================================================================== */
 
 #define CLOCK_TICKS_PER_SECONDS 5
-#define TEST_ASSERT_TIME(hours_ten, hours_unit, minutes_ten, minutes_unit, seconds_ten, seconds_unit)                  \
-    clock_time_u current_time = {0};                                                                                   \
-    TEST_ASSERT_TRUE_MESSAGE(ClockGetTime(clock, &current_time), "Clock has invalid time");                            \
-    TEST_ASSERT_EQUAL_UINT8_MESSAGE(seconds_unit, current_time.bcd[0], "Diference in the unit of seconds");            \
-    TEST_ASSERT_EQUAL_UINT8_MESSAGE(seconds_ten, current_time.bcd[1], "Diference in the ten of seconds");              \
-    TEST_ASSERT_EQUAL_UINT8_MESSAGE(minutes_unit, current_time.bcd[2], "Diference in the unit of minutes");            \
-    TEST_ASSERT_EQUAL_UINT8_MESSAGE(minutes_ten, current_time.bcd[3], "Diference in the ten of minutes");              \
-    TEST_ASSERT_EQUAL_UINT8_MESSAGE(hours_unit, current_time.bcd[4], "Diference in the unit of hours");                \
-    TEST_ASSERT_EQUAL_UINT8_MESSAGE(hours_ten, current_time.bcd[5], "Diference in the ten of hours");
+#define TEST_ASSERT_TIME(hours_ten, hours_unit, minutes_ten, minutes_unit, seconds_ten, seconds_unit, desired_time)    \
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(seconds_unit, desired_time.bcd[0], "Diference in the unit of seconds");            \
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(seconds_ten, desired_time.bcd[1], "Diference in the ten of seconds");              \
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(minutes_unit, desired_time.bcd[2], "Diference in the unit of minutes");            \
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(minutes_ten, desired_time.bcd[3], "Diference in the ten of minutes");              \
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(hours_unit, desired_time.bcd[4], "Diference in the unit of hours");                \
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(hours_ten, desired_time.bcd[5], "Diference in the ten of hours");
 
 /* === Private data type declarations ============================================================================== */
 
 /* === Private function declarations =============================================================================== */
 
+//! Funcion para simular el encendido de la alarma
+static void TurnOnAlarm(clock_p clock);
+
 /* === Private variable definitions ================================================================================ */
 
 /* === Public variable definitions ================================================================================= */
 
-clock_p clock;
+static clock_p clock;
+static bool alarm_is_active = false;
 
 /* === Private function definitions ================================================================================ */
 
 void setUp(void) {
-    clock = ClockCreate(CLOCK_TICKS_PER_SECONDS);
+    clock = ClockCreate(CLOCK_TICKS_PER_SECONDS, TurnOnAlarm);
 }
 
 static void SimulateSeconds(clock_p clock, int seconds) {
     for (int i = 0; i < CLOCK_TICKS_PER_SECONDS * seconds; i++) {
         ClockNewTick(clock);
     }
+}
+
+static void TurnOnAlarm(clock_p clock) {
+    alarm_is_active = true;
+    (void)clock;
 }
 
 /* === Public function definitions ===+============================================================================= */
@@ -89,7 +100,7 @@ void test_init_with_invalid_time(void) {
         .bcd = {1, 2, 3, 4, 5, 6},
     };
 
-    clock_p local_clock = ClockCreate(CLOCK_TICKS_PER_SECONDS);
+    clock_p local_clock = ClockCreate(CLOCK_TICKS_PER_SECONDS, TurnOnAlarm);
 
     TEST_ASSERT_FALSE(ClockGetTime(local_clock, &current_time));
     TEST_ASSERT_EACH_EQUAL_UINT8(0, current_time.bcd, 6);
@@ -102,7 +113,10 @@ void test_set_up_and_adjust_with_valid_time(void) {
     };
 
     TEST_ASSERT_TRUE(ClockSetTime(clock, &new_time));
-    TEST_ASSERT_TIME(1, 4, 3, 5, 1, 2);
+
+    clock_time_u current_time = {0};
+    TEST_ASSERT_TRUE_MESSAGE(ClockGetTime(clock, &current_time), "Clock has invalid time");
+    TEST_ASSERT_TIME(1, 4, 3, 5, 1, 2, current_time);
 }
 
 // 3-Después de n ciclos de reloj la hora avanza un segundo
@@ -111,7 +125,9 @@ void test_clock_advance_one_second(void) {
     ClockSetTime(clock, &(clock_time_u){0});
     SimulateSeconds(clock, 1);
 
-    TEST_ASSERT_TIME(0, 0, 0, 0, 0, 1);
+    clock_time_u current_time = {0};
+    TEST_ASSERT_TRUE_MESSAGE(ClockGetTime(clock, &current_time), "Clock has invalid time");
+    TEST_ASSERT_TIME(0, 0, 0, 0, 0, 1, current_time);
 }
 
 // 4-Después de n ciclos de reloj la hora avanza 10 segundos
@@ -120,7 +136,9 @@ void test_clock_advance_ten_seconds(void) {
     ClockSetTime(clock, &(clock_time_u){0});
     SimulateSeconds(clock, 10);
 
-    TEST_ASSERT_TIME(0, 0, 0, 0, 1, 0);
+    clock_time_u current_time = {0};
+    TEST_ASSERT_TRUE_MESSAGE(ClockGetTime(clock, &current_time), "Clock has invalid time");
+    TEST_ASSERT_TIME(0, 0, 0, 0, 1, 0, current_time);
 }
 
 // 5-Después de n ciclos de reloj la hora avanza 55 segundos
@@ -129,7 +147,9 @@ void test_clock_advance_fiftyfive_seconds(void) {
     ClockSetTime(clock, &(clock_time_u){0});
     SimulateSeconds(clock, 55);
 
-    TEST_ASSERT_TIME(0, 0, 0, 0, 5, 5);
+    clock_time_u current_time = {0};
+    TEST_ASSERT_TRUE_MESSAGE(ClockGetTime(clock, &current_time), "Clock has invalid time");
+    TEST_ASSERT_TIME(0, 0, 0, 0, 5, 5, current_time);
 }
 
 // 6-Después de n ciclos de reloj la hora avanza un minuto
@@ -138,7 +158,9 @@ void test_clock_advance_one_minute(void) {
     ClockSetTime(clock, &(clock_time_u){0});
     SimulateSeconds(clock, 60);
 
-    TEST_ASSERT_TIME(0, 0, 0, 1, 0, 0);
+    clock_time_u current_time = {0};
+    TEST_ASSERT_TRUE_MESSAGE(ClockGetTime(clock, &current_time), "Clock has invalid time");
+    TEST_ASSERT_TIME(0, 0, 0, 1, 0, 0, current_time);
 }
 
 // 7-Después de n ciclos de reloj la hora avanza 10 minutos
@@ -147,7 +169,9 @@ void test_clock_advance_ten_minutes(void) {
     ClockSetTime(clock, &(clock_time_u){0});
     SimulateSeconds(clock, 600);
 
-    TEST_ASSERT_TIME(0, 0, 1, 0, 0, 0);
+    clock_time_u current_time = {0};
+    TEST_ASSERT_TRUE_MESSAGE(ClockGetTime(clock, &current_time), "Clock has invalid time");
+    TEST_ASSERT_TIME(0, 0, 1, 0, 0, 0, current_time);
 }
 
 // 8-Después de n ciclos de reloj la hora avanza 55 minutos
@@ -156,7 +180,9 @@ void test_clock_advance_fiftyfive_minutes(void) {
     ClockSetTime(clock, &(clock_time_u){0});
     SimulateSeconds(clock, 3300);
 
-    TEST_ASSERT_TIME(0, 0, 5, 5, 0, 0);
+    clock_time_u current_time = {0};
+    TEST_ASSERT_TRUE_MESSAGE(ClockGetTime(clock, &current_time), "Clock has invalid time");
+    TEST_ASSERT_TIME(0, 0, 5, 5, 0, 0, current_time);
 }
 
 // 9-Después de n ciclos de reloj la hora avanza una hora
@@ -165,7 +191,9 @@ void test_clock_advance_one_hour(void) {
     ClockSetTime(clock, &(clock_time_u){0});
     SimulateSeconds(clock, 3600);
 
-    TEST_ASSERT_TIME(0, 1, 0, 0, 0, 0);
+    clock_time_u current_time = {0};
+    TEST_ASSERT_TRUE_MESSAGE(ClockGetTime(clock, &current_time), "Clock has invalid time");
+    TEST_ASSERT_TIME(0, 1, 0, 0, 0, 0, current_time);
 }
 
 // 10-Después de n ciclos de reloj la hora avanza 10 horas
@@ -174,7 +202,9 @@ void test_clock_advance_ten_hours(void) {
     ClockSetTime(clock, &(clock_time_u){0});
     SimulateSeconds(clock, 36000);
 
-    TEST_ASSERT_TIME(1, 0, 0, 0, 0, 0);
+    clock_time_u current_time = {0};
+    TEST_ASSERT_TRUE_MESSAGE(ClockGetTime(clock, &current_time), "Clock has invalid time");
+    TEST_ASSERT_TIME(1, 0, 0, 0, 0, 0, current_time);
 }
 
 // 11-Al superar 24hs vuelve a 00:00:00
@@ -183,7 +213,9 @@ void test_clock_advance_one_day(void) {
     ClockSetTime(clock, &(clock_time_u){0});
     SimulateSeconds(clock, 86400);
 
-    TEST_ASSERT_TIME(0, 0, 0, 0, 0, 0);
+    clock_time_u current_time = {0};
+    TEST_ASSERT_TRUE_MESSAGE(ClockGetTime(clock, &current_time), "Clock has invalid time");
+    TEST_ASSERT_TIME(0, 0, 0, 0, 0, 0, current_time);
 }
 
 // 12-Ajustar la hora con valor invalido de horas y ver que no los guarda.
@@ -195,7 +227,9 @@ void test_set_up_with_invalid_hour(void) {
     };
     TEST_ASSERT_EQUAL_INT(0, ClockSetTime(clock, &new_time));
 
-    TEST_ASSERT_TIME(0, 0, 0, 0, 0, 0);
+    clock_time_u current_time = {0};
+    TEST_ASSERT_TRUE_MESSAGE(ClockGetTime(clock, &current_time), "Clock has invalid time");
+    TEST_ASSERT_TIME(0, 0, 0, 0, 0, 0, current_time);
 }
 
 // 13-Ajustar la hora con valor invalido de minutos y ver que no los guarda.
@@ -207,7 +241,9 @@ void test_set_up_with_invalid_minutes(void) {
     };
     TEST_ASSERT_EQUAL_INT(0, ClockSetTime(clock, &new_time));
 
-    TEST_ASSERT_TIME(0, 0, 0, 0, 0, 0);
+    clock_time_u current_time = {0};
+    TEST_ASSERT_TRUE_MESSAGE(ClockGetTime(clock, &current_time), "Clock has invalid time");
+    TEST_ASSERT_TIME(0, 0, 0, 0, 0, 0, current_time);
 }
 
 // 14-Ajustar la hora con valor invalido de segundos y ver que no los guarda.
@@ -219,7 +255,75 @@ void test_set_up_with_invalid_seconds(void) {
     };
     TEST_ASSERT_EQUAL_INT(0, ClockSetTime(clock, &new_time));
 
-    TEST_ASSERT_TIME(0, 0, 0, 0, 0, 0);
+    clock_time_u current_time = {0};
+    TEST_ASSERT_TRUE_MESSAGE(ClockGetTime(clock, &current_time), "Clock has invalid time");
+    TEST_ASSERT_TIME(0, 0, 0, 0, 0, 0, current_time);
 }
 
+// 15-Fijar la hora de la alarma y consultarla
+void test_set_alarm() {
+
+    static const clock_time_u alarm = {
+        .time = {.hours = {3, 1}, .minutes = {9, 5}, .seconds = {3, 4}},
+    };
+    TEST_ASSERT_EQUAL_INT(1, ClockSetAlarm(clock, &alarm));
+
+    clock_time_u alarm_time = {0};
+    TEST_ASSERT_EQUAL_INT(1, ClockGetAlarm(clock, &alarm_time));
+    TEST_ASSERT_TIME(1, 3, 5, 9, 4, 3, alarm_time);
+}
+
+// 16-Controlar que al inicio la alamar no este puesta
+void test_is_alarm_set() {
+    clock_p local_clock = ClockCreate(CLOCK_TICKS_PER_SECONDS, TurnOnAlarm);
+
+    clock_time_u alarm_time = {0};
+    TEST_ASSERT_EQUAL_INT(0, ClockGetAlarm(local_clock, &alarm_time));
+}
+
+// 17-Controlar que la hora que se setea en la alarma sea valida por la hora
+void test_set_alarm_with_valid_hours() {
+    static const clock_time_u invalid_alarm = {
+        .time = {.hours = {5, 2}, .minutes = {0, 0}, .seconds = {0, 0}},
+    };
+    TEST_ASSERT_EQUAL_INT(0, ClockSetAlarm(clock, &invalid_alarm));
+}
+
+// 18-Controlar que la hora que se setea en la alarma sea valida por los minutos
+void test_set_alarm_with_valid_minutes() {
+    static const clock_time_u invalid_alarm = {
+        .time = {.hours = {0, 0}, .minutes = {5, 6}, .seconds = {0, 0}},
+    };
+    TEST_ASSERT_EQUAL_INT(0, ClockSetAlarm(clock, &invalid_alarm));
+}
+
+// 19-Controlar que la hora que se setea en la alarma sea valida por los segundos
+void test_set_alarm_with_valid_seconds() {
+    static const clock_time_u invalid_alarm = {
+        .time = {.hours = {0, 0}, .minutes = {0, 0}, .seconds = {8, 9}},
+    };
+    TEST_ASSERT_EQUAL_INT(0, ClockSetAlarm(clock, &invalid_alarm));
+}
+
+// 20-Fijar la alarma y avanzar el reloj para que suene.
+void test_that_the_alarm_turns_on_when_it_should() {
+
+    ClockSetTime(clock, &(clock_time_u){0});
+    alarm_is_active = false;
+
+    static const clock_time_u valid_alarm = {
+        .time = {.hours = {0, 0}, .minutes = {0, 0}, .seconds = {0, 1}},
+    };
+    ClockSetAlarm(clock, &valid_alarm);
+
+    TEST_ASSERT_EQUAL_INT(0, ClockIsAlarmOn(clock));
+    TEST_ASSERT_FALSE(alarm_is_active);
+
+    SimulateSeconds(clock, 10);
+
+    TEST_ASSERT_EQUAL_INT(1, ClockIsAlarmOn(clock));
+    TEST_ASSERT_TRUE(alarm_is_active);
+
+    alarm_is_active = false;
+}
 /* === End of documentation ======================================================================================== */
