@@ -132,6 +132,10 @@ int ClockGetAlarm(clock_p clock, clock_time_u * current_alarm);
  */
 int ClockIsAlarmOn(clock_p clock);
 
+void ClockDeactivateAlarm(clock_p clock);
+
+int ClockIsAlarmActivated(clock_p clock);
+
 /* === End of conditional blocks =================================================================================== */
 
 #ifdef __cplusplus

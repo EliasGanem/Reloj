@@ -38,6 +38,7 @@ struct clock_s {
     bool valid;
     bool alarm_set;
     bool alarm_is_on;
+    bool alarm_is_activated;
     uint32_t seconds_counter;
     uint16_t ticks_per_second;
     uint8_t ticks_counter;
@@ -128,6 +129,7 @@ clock_p ClockCreate(uint16_t ticks_per_second, clock_turn_on_alarm turn_on_alarm
     self->valid = false;
     self->alarm_set = false;
     self->alarm_is_on = false;
+    self->alarm_is_activated = false;
     self->ticks_per_second = ticks_per_second;
     self->TurnOnAlarm = turn_on_alarm;
 
@@ -168,22 +170,24 @@ void ClockNewTick(clock_p self) {
 
     ClockSecondsToTime(self);
 
-    if (!memcmp(&self->current_time, &self->current_alarm, sizeof(clock_time_u))) {
+    if (!memcmp(&self->current_time, &self->current_alarm, sizeof(clock_time_u)) && self->alarm_is_activated) {
         self->alarm_is_on = true;
         self->TurnOnAlarm(self);
     }
 }
 
 int ClockSetAlarm(clock_p self, const clock_time_u * new_alarm) {
+    int result = 1;
 
     if (!ClockValidTime(new_alarm)) {
-        return 0;
+        result = 0;
     } else {
         self->alarm_set = true;
+        self->alarm_is_activated = true;
         memcpy(&self->current_alarm, new_alarm, sizeof(clock_time_u));
     }
 
-    return 1;
+    return result;
 }
 
 int ClockGetAlarm(clock_p self, clock_time_u * current_alarm) {
@@ -194,7 +198,26 @@ int ClockGetAlarm(clock_p self, clock_time_u * current_alarm) {
 }
 
 int ClockIsAlarmOn(clock_p self) {
-    return self->alarm_is_on;
+    int result = 0;
+
+    if (self->alarm_is_on) {
+        result = 1;
+    }
+
+    return result;
 }
 
+void ClockDeactivateAlarm(clock_p self) {
+    self->alarm_is_activated = 0;
+}
+
+int ClockIsAlarmActivated(clock_p self) {
+    int result = 0;
+
+    if (self->alarm_is_activated) {
+        result = 1;
+    }
+
+    return result;
+}
 /* === End of documentation ======================================================================================== */

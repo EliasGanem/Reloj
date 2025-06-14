@@ -32,8 +32,8 @@ y un día completo.
 - Fijar la hora de la alarma y consultarla.
 - Controlar que al inicio la alamar no este puesta
 - Controlar que la hora que se setea en la alarma sea valida
-
 - Fijar la alarma y avanzar el reloj para que suene.
+
 - Fijar la alarma, deshabilitarla y avanzar el reloj para no suene.
 - Hacer sonar la alarma y posponerla.
 - Hacer sonar la alarma y cancelarla hasta el otro dia..
@@ -73,7 +73,7 @@ static void TurnOnAlarm(clock_p clock);
 /* === Public variable definitions ================================================================================= */
 
 static clock_p clock;
-static bool alarm_is_active = false;
+static bool alarm_is_ringing = false;
 
 /* === Private function definitions ================================================================================ */
 
@@ -88,7 +88,7 @@ static void SimulateSeconds(clock_p clock, int seconds) {
 }
 
 static void TurnOnAlarm(clock_p clock) {
-    alarm_is_active = true;
+    alarm_is_ringing = true;
     (void)clock;
 }
 
@@ -309,7 +309,7 @@ void test_set_alarm_with_valid_seconds() {
 void test_that_the_alarm_turns_on_when_it_should() {
 
     ClockSetTime(clock, &(clock_time_u){0});
-    alarm_is_active = false;
+    alarm_is_ringing = false;
 
     static const clock_time_u valid_alarm = {
         .time = {.hours = {0, 0}, .minutes = {0, 0}, .seconds = {0, 1}},
@@ -317,13 +317,51 @@ void test_that_the_alarm_turns_on_when_it_should() {
     ClockSetAlarm(clock, &valid_alarm);
 
     TEST_ASSERT_EQUAL_INT(0, ClockIsAlarmOn(clock));
-    TEST_ASSERT_FALSE(alarm_is_active);
+    TEST_ASSERT_FALSE(alarm_is_ringing);
 
     SimulateSeconds(clock, 10);
 
     TEST_ASSERT_EQUAL_INT(1, ClockIsAlarmOn(clock));
-    TEST_ASSERT_TRUE(alarm_is_active);
+    TEST_ASSERT_TRUE(alarm_is_ringing);
 
-    alarm_is_active = false;
+    alarm_is_ringing = false;
 }
+
+// 21-Fijar la alarma, deshabilitarla
+void test_that_alarm_can_be_deactivated() {
+
+    ClockSetTime(clock, &(clock_time_u){0});
+    alarm_is_ringing = false;
+
+    static const clock_time_u valid_alarm = {
+        .time = {.hours = {0, 0}, .minutes = {0, 0}, .seconds = {0, 1}},
+    };
+    ClockSetAlarm(clock, &valid_alarm);
+    TEST_ASSERT_EQUAL_INT(1, ClockIsAlarmActivated(clock));
+
+    ClockDeactivateAlarm(clock);
+
+    TEST_ASSERT_EQUAL_INT(0, ClockIsAlarmActivated(clock));
+}
+
+// 21-Ver que cuando la alarma esté seteada y deshabilitada no suene
+void test_when_the_alarm_is_deactivate_it_does_not_sound() {
+
+    ClockSetTime(clock, &(clock_time_u){0});
+    alarm_is_ringing = false;
+
+    static const clock_time_u valid_alarm = {
+        .time = {.hours = {0, 0}, .minutes = {0, 0}, .seconds = {1, 1}},
+    };
+    ClockSetAlarm(clock, &valid_alarm);
+
+    ClockDeactivateAlarm(clock);
+
+    SimulateSeconds(clock, 11);
+    TEST_ASSERT_EQUAL_INT(0, ClockIsAlarmOn(clock));
+    TEST_ASSERT_FALSE(alarm_is_ringing);
+
+    alarm_is_ringing = false;
+}
+
 /* === End of documentation ======================================================================================== */
