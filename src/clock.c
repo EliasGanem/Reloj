@@ -126,7 +126,7 @@ static void ClockSecondsToTime(uint32_t seconds, uint8_t * time) {
 
 /* === Public function definitions ================================================================================= */
 
-clock_p ClockCreate(uint16_t ticks_per_second, clock_alarm_driver_p alarm_driver) {
+clock_p ClockCreate(uint16_t ticks_per_second, clock_alarm_driver_p alarm_driver, uint32_t seconds_snoozed) {
     static struct clock_s self[1];
 
     memset(self, 0, sizeof(struct clock_s));
@@ -135,6 +135,7 @@ clock_p ClockCreate(uint16_t ticks_per_second, clock_alarm_driver_p alarm_driver
     self->alarm_is_ringing = false;
     self->alarm_is_activated = false;
     self->snooze_alarm = false;
+    self->seconds_snoozed = seconds_snoozed;
     self->ticks_per_second = ticks_per_second;
     self->alarm_driver = alarm_driver;
 
@@ -192,7 +193,7 @@ void ClockNewTick(clock_p self) {
         self->seconds_counter = 0;
     }
 
-    if (snooze_counter == self->seconds_snoozed && self->alarm_is_activated) {
+    if (snooze_counter == self->seconds_snoozed) {
         snooze_counter = 0;
         self->snooze_alarm = false;
         self->alarm_is_ringing = true;

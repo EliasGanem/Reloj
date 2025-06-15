@@ -37,6 +37,7 @@ y un día completo.
 - Hacer sonar la alarma y posponerla.
 
 - Ver que la alarma suene X tiempo definido despues de ser pospuesta
+- Ver que el timpo X que se define para que se posponga la alarma sea valido
 - Hacer sonar la alarma y cancelarla hasta el otro dia..
 - Ver que la alarma se apaga cuando pasan X minutos
 - Ver que la alarma se apaga cuando  la posponen X minutos despues de ser pospuesta
@@ -44,7 +45,9 @@ y un día completo.
 - Verificar cuando no puede crear el reloj
 - Probar reloj con una frecuencia distinta
 - Probar al crear el reloj la alarma no este pospuesta, activada ni sonando
-- OBS nunca actualizo el struct de ni su bcd current_time
+- OBSERVACION nunca actualizo el struct de tiempo ni su bcd current_time
+- Creo que hay un problema en snooze_counter == self->seconds_snoozed (linea 196) cuando no se pospone la alarma creo
+que puede darse esta condicion
  *
  */
 
@@ -58,7 +61,7 @@ y un día completo.
 /* === Macros definitions ========================================================================================== */
 
 #define CLOCK_TICKS_PER_SECONDS 5
-#define CLOCK_MINUTES_OF_SNOOZE 5
+#define CLOCK_SECONDS_OF_SNOOZE 300
 #define TEST_ASSERT_TIME(hours_ten, hours_unit, minutes_ten, minutes_unit, seconds_ten, seconds_unit, desired_time)    \
     TEST_ASSERT_EQUAL_UINT8_MESSAGE(seconds_unit, desired_time.bcd[0], "Diference in the unit of seconds");            \
     TEST_ASSERT_EQUAL_UINT8_MESSAGE(seconds_ten, desired_time.bcd[1], "Diference in the ten of seconds");              \
@@ -91,7 +94,7 @@ static const struct clock_alarm_driver_s alarm_driver = {
 /* === Private function definitions ================================================================================ */
 
 void setUp(void) {
-    clock = ClockCreate(CLOCK_TICKS_PER_SECONDS, &alarm_driver);
+    clock = ClockCreate(CLOCK_TICKS_PER_SECONDS, &alarm_driver, CLOCK_SECONDS_OF_SNOOZE);
     alarm_is_ringing = false;
 }
 
@@ -119,7 +122,7 @@ void test_init_with_invalid_time(void) {
         .bcd = {1, 2, 3, 4, 5, 6},
     };
 
-    clock_p local_clock = ClockCreate(CLOCK_TICKS_PER_SECONDS, &alarm_driver);
+    clock_p local_clock = ClockCreate(CLOCK_TICKS_PER_SECONDS, &alarm_driver, CLOCK_SECONDS_OF_SNOOZE);
 
     TEST_ASSERT_FALSE(ClockGetTime(local_clock, &current_time));
     TEST_ASSERT_EACH_EQUAL_UINT8(0, current_time.bcd, 6);
@@ -294,7 +297,7 @@ void test_set_alarm() {
 
 // 16-Controlar que al inicio la alamar no este puesta
 void test_is_alarm_set() {
-    clock_p local_clock = ClockCreate(CLOCK_TICKS_PER_SECONDS, &alarm_driver);
+    clock_p local_clock = ClockCreate(CLOCK_TICKS_PER_SECONDS, &alarm_driver, CLOCK_SECONDS_OF_SNOOZE);
 
     clock_time_u alarm_time = {0};
     TEST_ASSERT_EQUAL_INT(0, ClockGetAlarm(local_clock, &alarm_time));

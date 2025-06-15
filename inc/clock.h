@@ -82,9 +82,10 @@ typedef struct clock_alarm_driver_s {
  *
  * @param uint16_t es la cantidad de veces que se llama a @ref ClockNewTick que equivalena  un segundo.
  * @param clock_tunr_on_alarm puntero a una funcion que enciende una alarma
+ * @param seconds_snoozed cantiad de segundos que el reloj pospondrá la alarma
  * @return clock_p
  */
-clock_p ClockCreate(uint16_t ticks_per_second, clock_alarm_driver_p alarm_driver);
+clock_p ClockCreate(uint16_t ticks_per_second, clock_alarm_driver_p alarm_driver, uint32_t seconds_snoozed);
 
 /**
  * @brief Funcion para obtener la hora actual.
