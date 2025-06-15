@@ -35,12 +35,14 @@ SPDX-License-Identifier: MIT
 struct clock_s {
     clock_time_u current_time;
     clock_time_u current_alarm;
+    uint32_t current_alarm_in_seconds;
     bool valid;
     bool alarm_set;
     bool alarm_is_ringing;
     bool alarm_is_activated;
     bool snooze_alarm;
     uint32_t seconds_counter;
+    uint32_t seconds_snoozed;
     uint16_t ticks_per_second;
     uint8_t ticks_counter;
     clock_alarm_driver_p alarm_driver;
@@ -49,7 +51,7 @@ struct clock_s {
 /* === Private function declarations =============================================================================== */
 
 /**
- * @brief Funcion que verifica si la hora es valida
+ * @brief Funcion que verifica si la hora es valida, la hora está en un array
  *
  * Su objetivo es facilitar la lectura de @ref ClockSetTime().
  *
@@ -70,9 +72,10 @@ static void Uint8ToBCD(uint8_t, uint8_t * bcd);
 /**
  * @brief Función para convertir Segundos a hora,minutos y segundos en formato BCD
  *
- * @param clock referencia del reloj
+ * @param seconds segundos a convertir en tiempo
+ * @param time array de 6 elementos donde se guarda el tiempo en dormato bcd
  */
-static void ClockSecondsToTime(clock_p clock);
+static void ClockSecondsToTime(uint32_t seconds, uint8_t * time);
 
 /* === Private variable definitions ================================================================================ */
 
@@ -101,24 +104,24 @@ static void Uint8ToBCD(uint8_t integer, uint8_t * bcd) {
     }
 }
 
-static void ClockSecondsToTime(clock_p self) {
-    uint8_t seconds, minutes, hours = 0;
+static void ClockSecondsToTime(uint32_t seconds, uint8_t * time) {
+    uint8_t minutes, hours = 0;
     uint8_t bcd[8] = {0};
 
-    seconds = self->seconds_counter % 60;
-    Uint8ToBCD(seconds, bcd);
-    self->current_time.bcd[0] = bcd[0];
-    self->current_time.bcd[1] = bcd[1];
-
-    minutes = (self->seconds_counter / 60) % 60;
-    Uint8ToBCD(minutes, bcd);
-    self->current_time.bcd[2] = bcd[0];
-    self->current_time.bcd[3] = bcd[1];
-
-    hours = (self->seconds_counter / 3600);
+    hours = (seconds / 3600);
     Uint8ToBCD(hours, bcd);
-    self->current_time.bcd[4] = bcd[0];
-    self->current_time.bcd[5] = bcd[1];
+    time[4] = bcd[0];
+    time[5] = bcd[1];
+
+    minutes = (seconds / 60) % 60;
+    Uint8ToBCD(minutes, bcd);
+    time[2] = bcd[0];
+    time[3] = bcd[1];
+
+    seconds = seconds % 60;
+    Uint8ToBCD(seconds, bcd);
+    time[0] = bcd[0];
+    time[1] = bcd[1];
 }
 
 /* === Public function definitions ================================================================================= */
@@ -138,9 +141,17 @@ clock_p ClockCreate(uint16_t ticks_per_second, clock_alarm_driver_p alarm_driver
     return self;
 }
 
-int ClockGetTime(clock_p self, clock_time_u * current_time) {
+int ClockGetTime(clock_p self, clock_time_u * result) {
 
-    memcpy(current_time, &self->current_time, sizeof(clock_time_u));
+    ClockSecondsToTime(self->seconds_counter, self->current_time.bcd);
+    // self->current_time.time.seconds[0] = self->current_time.bcd[0];
+    // self->current_time.time.seconds[1] = self->current_time.bcd[1];
+    // self->current_time.time.minutes[0] = self->current_time.bcd[2];
+    // self->current_time.time.minutes[1] = self->current_time.bcd[3];
+    // self->current_time.time.hours[0] = self->current_time.bcd[4];
+    // self->current_time.time.hours[1] = self->current_time.bcd[5];
+
+    memcpy(result, &self->current_time, sizeof(clock_time_u));
 
     return self->valid;
 }
@@ -153,26 +164,43 @@ int ClockSetTime(clock_p self, const clock_time_u * new_time) {
     } else {
         self->valid = true;
         memcpy(&self->current_time, new_time, sizeof(clock_time_u));
+        self->seconds_counter = new_time->bcd[0];
+        self->seconds_counter += 10 * new_time->bcd[1];
+        self->seconds_counter += 60 * new_time->bcd[2];
+        self->seconds_counter += 10 * 60 * new_time->bcd[3];
+        self->seconds_counter += 60 * 60 * new_time->bcd[4];
+        self->seconds_counter += 10 * 60 * 60 * new_time->bcd[5];
     }
 
     return result;
 }
 
 void ClockNewTick(clock_p self) {
+    static uint32_t snooze_counter = 0;
+
     self->ticks_counter++;
 
     if (self->ticks_counter == self->ticks_per_second) {
         self->ticks_counter = 0;
         self->seconds_counter++;
+        if (self->snooze_alarm) {
+            snooze_counter++;
+        }
     }
 
     if (self->seconds_counter == 86400) {
         self->seconds_counter = 0;
     }
 
-    ClockSecondsToTime(self);
+    if (snooze_counter == self->seconds_snoozed && self->alarm_is_activated) {
+        snooze_counter = 0;
+        self->snooze_alarm = false;
+        self->alarm_is_ringing = true;
+        self->alarm_driver->TurnOnAlarm(self);
+    }
 
-    if (!memcmp(&self->current_time, &self->current_alarm, sizeof(clock_time_u)) && self->alarm_is_activated) {
+    // Activa alarma
+    if ((self->seconds_counter == self->current_alarm_in_seconds) && self->alarm_is_activated) {
         self->alarm_is_ringing = true;
         self->alarm_driver->TurnOnAlarm(self);
     }
@@ -180,13 +208,22 @@ void ClockNewTick(clock_p self) {
 
 int ClockSetAlarm(clock_p self, const clock_time_u * new_alarm) {
     int result = 1;
+    int alarm_in_seconds;
 
     if (!ClockValidTime(new_alarm)) {
         result = 0;
     } else {
         self->alarm_set = true;
         self->alarm_is_activated = true;
+
         memcpy(&self->current_alarm, new_alarm, sizeof(clock_time_u));
+        alarm_in_seconds = self->current_alarm.bcd[0];
+        alarm_in_seconds += 10 * self->current_alarm.bcd[1];
+        alarm_in_seconds += 60 * self->current_alarm.bcd[2];
+        alarm_in_seconds += 10 * 60 * self->current_alarm.bcd[3];
+        alarm_in_seconds += 60 * 60 * self->current_alarm.bcd[4];
+        alarm_in_seconds += 10 * 60 * 60 * self->current_alarm.bcd[5];
+        self->current_alarm_in_seconds = alarm_in_seconds;
     }
 
     return result;

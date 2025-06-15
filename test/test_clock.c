@@ -34,8 +34,9 @@ y un día completo.
 - Controlar que la hora que se setea en la alarma sea valida
 - Fijar la alarma y avanzar el reloj para que suene.
 - Fijar la alarma, deshabilitarla y avanzar el reloj para no suene.
-
 - Hacer sonar la alarma y posponerla.
+
+- Ver que la alarma suene X tiempo definido despues de ser pospuesta
 - Hacer sonar la alarma y cancelarla hasta el otro dia..
 - Ver que la alarma se apaga cuando pasan X minutos
 - Ver que la alarma se apaga cuando  la posponen X minutos despues de ser pospuesta
@@ -43,6 +44,7 @@ y un día completo.
 - Verificar cuando no puede crear el reloj
 - Probar reloj con una frecuencia distinta
 - Probar al crear el reloj la alarma no este pospuesta, activada ni sonando
+- OBS nunca actualizo el struct de ni su bcd current_time
  *
  */
 
@@ -56,6 +58,7 @@ y un día completo.
 /* === Macros definitions ========================================================================================== */
 
 #define CLOCK_TICKS_PER_SECONDS 5
+#define CLOCK_MINUTES_OF_SNOOZE 5
 #define TEST_ASSERT_TIME(hours_ten, hours_unit, minutes_ten, minutes_unit, seconds_ten, seconds_unit, desired_time)    \
     TEST_ASSERT_EQUAL_UINT8_MESSAGE(seconds_unit, desired_time.bcd[0], "Diference in the unit of seconds");            \
     TEST_ASSERT_EQUAL_UINT8_MESSAGE(seconds_ten, desired_time.bcd[1], "Diference in the ten of seconds");              \
@@ -89,6 +92,7 @@ static const struct clock_alarm_driver_s alarm_driver = {
 
 void setUp(void) {
     clock = ClockCreate(CLOCK_TICKS_PER_SECONDS, &alarm_driver);
+    alarm_is_ringing = false;
 }
 
 static void SimulateSeconds(clock_p clock, int seconds) {
@@ -346,7 +350,6 @@ void test_that_the_alarm_turns_on_when_it_should() {
 void test_that_alarm_can_be_deactivated() {
 
     ClockSetTime(clock, &(clock_time_u){0});
-    alarm_is_ringing = false;
 
     static const clock_time_u valid_alarm = {
         .time = {.hours = {0, 0}, .minutes = {0, 0}, .seconds = {0, 1}},
@@ -363,7 +366,6 @@ void test_that_alarm_can_be_deactivated() {
 void test_when_the_alarm_is_deactivate_it_does_not_sound() {
 
     ClockSetTime(clock, &(clock_time_u){0});
-    alarm_is_ringing = false;
 
     static const clock_time_u valid_alarm = {
         .time = {.hours = {0, 0}, .minutes = {0, 0}, .seconds = {1, 1}},
@@ -383,7 +385,6 @@ void test_when_the_alarm_is_deactivate_it_does_not_sound() {
 void test_when_the_alarm_sounds_it_can_be_snoozed_and_turned_off() {
 
     ClockSetTime(clock, &(clock_time_u){0});
-    alarm_is_ringing = false;
 
     static const clock_time_u valid_alarm = {
         .time = {.hours = {0, 0}, .minutes = {0, 3}, .seconds = {0, 0}},
@@ -400,6 +401,24 @@ void test_when_the_alarm_sounds_it_can_be_snoozed_and_turned_off() {
     TEST_ASSERT_FALSE(alarm_is_ringing);
 
     alarm_is_ringing = false;
+}
+
+// 24-Ver que la alarma suena X tiempo después de ser pospuesta
+void test_alarm_sounds_after_be_snoozed() {
+
+    ClockSetTime(clock, &(clock_time_u){0});
+
+    static const clock_time_u valid_alarm = {
+        .time = {.hours = {0, 0}, .minutes = {0, 3}, .seconds = {0, 0}},
+    };
+    ClockSetAlarm(clock, &valid_alarm);
+
+    SimulateSeconds(clock, 1800); // pasaron 30 minutos
+    SimulateSeconds(clock, 180);  // pasaron 3 minutos
+    ClockSnoozeAlarm(clock);
+    SimulateSeconds(clock, 300); // pasaron 3 minutos
+    TEST_ASSERT_EQUAL_INT(1, ClockIsAlarmRinging(clock));
+    TEST_ASSERT_TRUE(alarm_is_ringing);
 }
 
 /* === End of documentation ======================================================================================== */
