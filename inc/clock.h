@@ -57,7 +57,19 @@ typedef union {
  *
  * @param clock referencia al reloj del que se habla.
  */
-typedef void (*clock_turn_on_alarm)(clock_p clock);
+typedef void (*turn_on_alarm_p)(clock_p clock);
+
+/**
+ * @brief Puntero a una función que apaga la alarma correspondiente al reloj.
+ *
+ * @param clock referencia al reloj del que se habla.
+ */
+typedef void (*turn_off_alarm_p)(clock_p clock);
+
+typedef struct clock_alarm_driver_s {
+    turn_off_alarm_p TurnOffAlarm;
+    turn_on_alarm_p TurnOnAlarm;
+} const * clock_alarm_driver_p;
 
 /* === Public variable declarations ================================================================================ */
 
@@ -72,7 +84,7 @@ typedef void (*clock_turn_on_alarm)(clock_p clock);
  * @param clock_tunr_on_alarm puntero a una funcion que enciende una alarma
  * @return clock_p
  */
-clock_p ClockCreate(uint16_t ticks_per_second, clock_turn_on_alarm turn_on_alarm);
+clock_p ClockCreate(uint16_t ticks_per_second, clock_alarm_driver_p alarm_driver);
 
 /**
  * @brief Funcion para obtener la hora actual.
@@ -123,18 +135,36 @@ int ClockSetAlarm(clock_p clock, const clock_time_u * new_alarm);
 int ClockGetAlarm(clock_p clock, clock_time_u * current_alarm);
 
 /**
- * @brief Funcion para saber si la alarma del reloj esta activa
+ * @brief Funcion para saber si la alarma del reloj esta sonando
  *
  * @param clock referencia al reloj
  * @return devuelve un entero cuyo valor es:
  *  \li 1 si la alarma esta encendida
  *  \li 0 si la alarma esta apagada
  */
-int ClockIsAlarmOn(clock_p clock);
+int ClockIsAlarmRinging(clock_p clock);
 
+/**
+ * @brief Función para desactivar la alarma y que no suene
+ *
+ * @param clock referenia al reloj
+ */
 void ClockDeactivateAlarm(clock_p clock);
 
+/**
+ * @brief Función para saber si la alarma esta activa
+ *
+ * @param clock
+ * @return int
+ */
 int ClockIsAlarmActivated(clock_p clock);
+
+/**
+ * @brief Funcion para posponer la alarma
+ *
+ * @param clock referencia del reloj
+ */
+void ClockSnoozeAlarm(clock_p clock);
 
 /* === End of conditional blocks =================================================================================== */
 

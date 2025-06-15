@@ -33,13 +33,16 @@ y un día completo.
 - Controlar que al inicio la alamar no este puesta
 - Controlar que la hora que se setea en la alarma sea valida
 - Fijar la alarma y avanzar el reloj para que suene.
-
 - Fijar la alarma, deshabilitarla y avanzar el reloj para no suene.
+
 - Hacer sonar la alarma y posponerla.
 - Hacer sonar la alarma y cancelarla hasta el otro dia..
+- Ver que la alarma se apaga cuando pasan X minutos
+- Ver que la alarma se apaga cuando  la posponen X minutos despues de ser pospuesta
 - Probar que devulve ClockGetTime cuando le pido la hora
 - Verificar cuando no puede crear el reloj
 - Probar reloj con una frecuencia distinta
+- Probar al crear el reloj la alarma no este pospuesta, activada ni sonando
  *
  */
 
@@ -68,17 +71,24 @@ y un día completo.
 //! Funcion para simular el encendido de la alarma
 static void TurnOnAlarm(clock_p clock);
 
+//! Funcion para simular el apagado de la alarma
+static void TurnOffAlarm(clock_p clock);
+
 /* === Private variable definitions ================================================================================ */
 
 /* === Public variable definitions ================================================================================= */
 
 static clock_p clock;
 static bool alarm_is_ringing = false;
+static const struct clock_alarm_driver_s alarm_driver = {
+    .TurnOnAlarm = TurnOnAlarm,
+    .TurnOffAlarm = TurnOffAlarm,
+};
 
 /* === Private function definitions ================================================================================ */
 
 void setUp(void) {
-    clock = ClockCreate(CLOCK_TICKS_PER_SECONDS, TurnOnAlarm);
+    clock = ClockCreate(CLOCK_TICKS_PER_SECONDS, &alarm_driver);
 }
 
 static void SimulateSeconds(clock_p clock, int seconds) {
@@ -92,6 +102,11 @@ static void TurnOnAlarm(clock_p clock) {
     (void)clock;
 }
 
+static void TurnOffAlarm(clock_p clock) {
+    alarm_is_ringing = false;
+    (void)clock;
+}
+
 /* === Public function definitions ===+============================================================================= */
 
 // 1-Al inicializar el reloj está en 00:00 y con hora invalida.
@@ -100,7 +115,7 @@ void test_init_with_invalid_time(void) {
         .bcd = {1, 2, 3, 4, 5, 6},
     };
 
-    clock_p local_clock = ClockCreate(CLOCK_TICKS_PER_SECONDS, TurnOnAlarm);
+    clock_p local_clock = ClockCreate(CLOCK_TICKS_PER_SECONDS, &alarm_driver);
 
     TEST_ASSERT_FALSE(ClockGetTime(local_clock, &current_time));
     TEST_ASSERT_EACH_EQUAL_UINT8(0, current_time.bcd, 6);
@@ -275,7 +290,7 @@ void test_set_alarm() {
 
 // 16-Controlar que al inicio la alamar no este puesta
 void test_is_alarm_set() {
-    clock_p local_clock = ClockCreate(CLOCK_TICKS_PER_SECONDS, TurnOnAlarm);
+    clock_p local_clock = ClockCreate(CLOCK_TICKS_PER_SECONDS, &alarm_driver);
 
     clock_time_u alarm_time = {0};
     TEST_ASSERT_EQUAL_INT(0, ClockGetAlarm(local_clock, &alarm_time));
@@ -316,12 +331,12 @@ void test_that_the_alarm_turns_on_when_it_should() {
     };
     ClockSetAlarm(clock, &valid_alarm);
 
-    TEST_ASSERT_EQUAL_INT(0, ClockIsAlarmOn(clock));
+    TEST_ASSERT_EQUAL_INT(0, ClockIsAlarmRinging(clock));
     TEST_ASSERT_FALSE(alarm_is_ringing);
 
     SimulateSeconds(clock, 10);
 
-    TEST_ASSERT_EQUAL_INT(1, ClockIsAlarmOn(clock));
+    TEST_ASSERT_EQUAL_INT(1, ClockIsAlarmRinging(clock)); // Esta bien esto?
     TEST_ASSERT_TRUE(alarm_is_ringing);
 
     alarm_is_ringing = false;
@@ -344,7 +359,7 @@ void test_that_alarm_can_be_deactivated() {
     TEST_ASSERT_EQUAL_INT(0, ClockIsAlarmActivated(clock));
 }
 
-// 21-Ver que cuando la alarma esté seteada y deshabilitada no suene
+// 22-Ver que cuando la alarma esté seteada y deshabilitada no suene
 void test_when_the_alarm_is_deactivate_it_does_not_sound() {
 
     ClockSetTime(clock, &(clock_time_u){0});
@@ -358,7 +373,30 @@ void test_when_the_alarm_is_deactivate_it_does_not_sound() {
     ClockDeactivateAlarm(clock);
 
     SimulateSeconds(clock, 11);
-    TEST_ASSERT_EQUAL_INT(0, ClockIsAlarmOn(clock));
+    TEST_ASSERT_EQUAL_INT(0, ClockIsAlarmRinging(clock));
+    TEST_ASSERT_FALSE(alarm_is_ringing);
+
+    alarm_is_ringing = false;
+}
+
+// 23-Hacer sonar la alarma y posponerla.
+void test_when_the_alarm_sounds_it_can_be_snoozed_and_turned_off() {
+
+    ClockSetTime(clock, &(clock_time_u){0});
+    alarm_is_ringing = false;
+
+    static const clock_time_u valid_alarm = {
+        .time = {.hours = {0, 0}, .minutes = {0, 3}, .seconds = {0, 0}},
+    };
+    ClockSetAlarm(clock, &valid_alarm);
+
+    SimulateSeconds(clock, 1800);
+    TEST_ASSERT_EQUAL_INT(1, ClockIsAlarmRinging(clock));
+    TEST_ASSERT_TRUE(alarm_is_ringing);
+
+    SimulateSeconds(clock, 180);
+    ClockSnoozeAlarm(clock);
+    TEST_ASSERT_EQUAL_INT(0, ClockIsAlarmRinging(clock));
     TEST_ASSERT_FALSE(alarm_is_ringing);
 
     alarm_is_ringing = false;

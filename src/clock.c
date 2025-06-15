@@ -37,12 +37,13 @@ struct clock_s {
     clock_time_u current_alarm;
     bool valid;
     bool alarm_set;
-    bool alarm_is_on;
+    bool alarm_is_ringing;
     bool alarm_is_activated;
+    bool snooze_alarm;
     uint32_t seconds_counter;
     uint16_t ticks_per_second;
     uint8_t ticks_counter;
-    clock_turn_on_alarm TurnOnAlarm;
+    clock_alarm_driver_p alarm_driver;
 };
 
 /* === Private function declarations =============================================================================== */
@@ -122,16 +123,17 @@ static void ClockSecondsToTime(clock_p self) {
 
 /* === Public function definitions ================================================================================= */
 
-clock_p ClockCreate(uint16_t ticks_per_second, clock_turn_on_alarm turn_on_alarm) {
+clock_p ClockCreate(uint16_t ticks_per_second, clock_alarm_driver_p alarm_driver) {
     static struct clock_s self[1];
 
     memset(self, 0, sizeof(struct clock_s));
     self->valid = false;
     self->alarm_set = false;
-    self->alarm_is_on = false;
+    self->alarm_is_ringing = false;
     self->alarm_is_activated = false;
+    self->snooze_alarm = false;
     self->ticks_per_second = ticks_per_second;
-    self->TurnOnAlarm = turn_on_alarm;
+    self->alarm_driver = alarm_driver;
 
     return self;
 }
@@ -171,8 +173,8 @@ void ClockNewTick(clock_p self) {
     ClockSecondsToTime(self);
 
     if (!memcmp(&self->current_time, &self->current_alarm, sizeof(clock_time_u)) && self->alarm_is_activated) {
-        self->alarm_is_on = true;
-        self->TurnOnAlarm(self);
+        self->alarm_is_ringing = true;
+        self->alarm_driver->TurnOnAlarm(self);
     }
 }
 
@@ -197,10 +199,10 @@ int ClockGetAlarm(clock_p self, clock_time_u * current_alarm) {
     return self->alarm_set;
 }
 
-int ClockIsAlarmOn(clock_p self) {
+int ClockIsAlarmRinging(clock_p self) {
     int result = 0;
 
-    if (self->alarm_is_on) {
+    if (self->alarm_is_ringing) {
         result = 1;
     }
 
@@ -219,5 +221,11 @@ int ClockIsAlarmActivated(clock_p self) {
     }
 
     return result;
+}
+
+void ClockSnoozeAlarm(clock_p self) {
+    self->snooze_alarm = true;
+    self->alarm_is_ringing = false;
+    self->alarm_driver->TurnOffAlarm(self);
 }
 /* === End of documentation ======================================================================================== */
