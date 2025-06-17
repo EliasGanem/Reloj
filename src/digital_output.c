@@ -18,7 +18,7 @@ SPDX-License-Identifier: MIT
 *********************************************************************************************************************/
 
 /** @file digital_output.c
- ** @brief Codigo duente del modulo de salidas digitales para el proyecto reloj - Electrónica 4 2025
+ ** @brief Código fuente del modulo de salidas digitales para el proyecto reloj - Electrónica 4 2025
  **/
 
 /* === Headers files inclusions ==================================================================================== */
