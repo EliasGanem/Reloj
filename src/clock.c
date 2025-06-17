@@ -58,7 +58,7 @@ struct clock_s {
  * @param time tiempo
  * @return retorna true si el la hora es valida.
  */
-static bool ClockValidTime(const clock_time_u * time);
+static bool ValidTime(const clock_time_u * time);
 
 /**
  * @brief Funcion que convierte un uint8_t en bcd
@@ -75,7 +75,18 @@ static void Uint8ToBCD(uint8_t, uint8_t * bcd);
  * @param seconds segundos a convertir en tiempo
  * @param time array de 6 elementos donde se guarda el tiempo en dormato bcd
  */
-static void ClockSecondsToTime(uint32_t seconds, uint8_t * time);
+static void SecondsToTime(uint32_t seconds, uint8_t * time);
+
+/**
+ * @brief Funcion para convertir tiempo expresado en un array a segundos,  donde el LSB es la unidad de segundos y el
+ * MSB es la decena de horas.
+ *
+ * No verifica la validez de argumentos, pues es para mejorar legibilidad de código
+ *
+ * @param bcd_time puntero del array a converit en segundos
+ * @return resultado de segundos que equivalen al tiempo
+ */
+static uint32_t BcdTimeToSeconds(const uint8_t * bcd_time);
 
 /* === Private variable definitions ================================================================================ */
 
@@ -83,7 +94,7 @@ static void ClockSecondsToTime(uint32_t seconds, uint8_t * time);
 
 /* === Private function definitions ================================================================================ */
 
-static bool ClockValidTime(const clock_time_u * time) {
+static bool ValidTime(const clock_time_u * time) {
     bool result = true;
 
     if ((time->bcd[5] >= 2) && (time->bcd[4] > 4)) {
@@ -104,7 +115,7 @@ static void Uint8ToBCD(uint8_t integer, uint8_t * bcd) {
     }
 }
 
-static void ClockSecondsToTime(uint32_t seconds, uint8_t * time) {
+static void SecondsToTime(uint32_t seconds, uint8_t * time) {
     uint8_t minutes, hours = 0;
     uint8_t bcd[8] = {0};
 
@@ -124,6 +135,19 @@ static void ClockSecondsToTime(uint32_t seconds, uint8_t * time) {
     time[1] = bcd[1];
 }
 
+static uint32_t BcdTimeToSeconds(const uint8_t * time) {
+    uint32_t seconds;
+
+    seconds = time[0];
+    seconds += 10 * time[1];
+    seconds += 60 * time[2];
+    seconds += 10 * 60 * time[3];
+    seconds += 60 * 60 * time[4];
+    seconds += 10 * 60 * 60 * time[5];
+
+    return seconds;
+}
+
 /* === Public function definitions ================================================================================= */
 
 clock_p ClockCreate(uint16_t ticks_per_second, clock_alarm_driver_p alarm_driver, uint32_t seconds_snoozed) {
@@ -131,6 +155,10 @@ clock_p ClockCreate(uint16_t ticks_per_second, clock_alarm_driver_p alarm_driver
     clock_p result = self;
 
     if (seconds_snoozed > 86400) {
+        result = NULL;
+    } else if (alarm_driver == NULL) {
+        result = NULL;
+    } else if (alarm_driver->TurnOffAlarm == NULL || alarm_driver->TurnOnAlarm == NULL) {
         result = NULL;
     } else {
         memset(self, 0, sizeof(struct clock_s));
@@ -149,14 +177,7 @@ clock_p ClockCreate(uint16_t ticks_per_second, clock_alarm_driver_p alarm_driver
 
 int ClockGetTime(clock_p self, clock_time_u * result) {
 
-    ClockSecondsToTime(self->seconds_counter, self->current_time.bcd);
-    // self->current_time.time.seconds[0] = self->current_time.bcd[0];
-    // self->current_time.time.seconds[1] = self->current_time.bcd[1];
-    // self->current_time.time.minutes[0] = self->current_time.bcd[2];
-    // self->current_time.time.minutes[1] = self->current_time.bcd[3];
-    // self->current_time.time.hours[0] = self->current_time.bcd[4];
-    // self->current_time.time.hours[1] = self->current_time.bcd[5];
-
+    SecondsToTime(self->seconds_counter, self->current_time.bcd);
     memcpy(result, &self->current_time, sizeof(clock_time_u));
 
     return self->valid;
@@ -165,17 +186,12 @@ int ClockGetTime(clock_p self, clock_time_u * result) {
 int ClockSetTime(clock_p self, const clock_time_u * new_time) {
     int result = 1;
 
-    if (!ClockValidTime(new_time)) {
+    if (!ValidTime(new_time)) {
         result = 0;
     } else {
         self->valid = true;
         memcpy(&self->current_time, new_time, sizeof(clock_time_u));
-        self->seconds_counter = new_time->bcd[0];
-        self->seconds_counter += 10 * new_time->bcd[1];
-        self->seconds_counter += 60 * new_time->bcd[2];
-        self->seconds_counter += 10 * 60 * new_time->bcd[3];
-        self->seconds_counter += 60 * 60 * new_time->bcd[4];
-        self->seconds_counter += 10 * 60 * 60 * new_time->bcd[5];
+        self->seconds_counter = BcdTimeToSeconds(new_time->bcd);
     }
 
     return result;
@@ -214,22 +230,15 @@ void ClockNewTick(clock_p self) {
 
 int ClockSetAlarm(clock_p self, const clock_time_u * new_alarm) {
     int result = 1;
-    int alarm_in_seconds;
 
-    if (!ClockValidTime(new_alarm)) {
+    if (!ValidTime(new_alarm)) {
         result = 0;
     } else {
         self->alarm_set = true;
         self->alarm_is_activated = true;
 
         memcpy(&self->current_alarm, new_alarm, sizeof(clock_time_u));
-        alarm_in_seconds = self->current_alarm.bcd[0];
-        alarm_in_seconds += 10 * self->current_alarm.bcd[1];
-        alarm_in_seconds += 60 * self->current_alarm.bcd[2];
-        alarm_in_seconds += 10 * 60 * self->current_alarm.bcd[3];
-        alarm_in_seconds += 60 * 60 * self->current_alarm.bcd[4];
-        alarm_in_seconds += 10 * 60 * 60 * self->current_alarm.bcd[5];
-        self->current_alarm_in_seconds = alarm_in_seconds;
+        self->current_alarm_in_seconds = BcdTimeToSeconds(self->current_alarm.bcd);
     }
 
     return result;
@@ -268,8 +277,7 @@ int ClockIsAlarmActivated(clock_p self) {
 
 void ClockSnoozeAlarm(clock_p self) {
     self->snooze_alarm = true;
-    self->alarm_is_ringing = false;
-    self->alarm_driver->TurnOffAlarm(self);
+    ClockTurnOffAlarm(self);
 }
 
 void ClockTurnOffAlarm(clock_p self) {

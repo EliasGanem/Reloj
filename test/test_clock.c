@@ -37,18 +37,22 @@ y un día completo.
 - Hacer sonar la alarma y posponerla.
 - Ver que la alarma vuelva a sonar X tiempo definido despues de ser pospuesta
 - Ver que el timpo X que se define para que se posponga la alarma sea valido
-
 - Hacer sonar la alarma y cancelarla hasta el otro dia..
+- Verificar cuando no puede crear el reloj
+- Probar al crear el reloj la alarma no este pospuesta, activada ni sonando
+
+- Ver que pasa si se pospone 24hs -- Crashea el test
+
+- Probar que ClockGetTime devuelve bien la unión cuando le pido la hora (Por el array y el Struct); -- Redundante
+- Probar que al Crear el Reloj la ClockGetTime devuelve bien la unión de hora  (Por el array y el Struct); -- Redundante
+- OBSERVACION nunca actualizo el struct de tiempo ni su bcd current_time
+
 - Ver que la alarma se apaga cuando pasan X minutos
 - Ver que la alarma se apaga cuando  la posponen X minutos despues de ser pospuesta
-- Probar que devulve ClockGetTime cuando le pido la hora
-- Verificar cuando no puede crear el reloj
+
 - Probar reloj con una frecuencia distinta
-- Probar al crear el reloj la alarma no este pospuesta, activada ni sonando
-- OBSERVACION nunca actualizo el struct de tiempo ni su bcd current_time
 - Creo que hay un problema en snooze_counter == self->seconds_snoozed (linea 196) cuando no se pospone la alarma creo
 que puede darse esta condicion
-- Ver que pasa si se pospone 24hs
  *
  */
 
@@ -452,5 +456,50 @@ void test_the_alarm_sounds_the_next_day_when_its_turned_off() {
     TEST_ASSERT_EQUAL_INT(1, ClockIsAlarmRinging(clock));
     TEST_ASSERT_TRUE(alarm_is_ringing);
 }
+
+// 27-No poder Crear al pasar un driver para la alarma invalido a ClockCreate
+void test_invalid_alarm_driver_for_ClockCreate() {
+    const struct clock_alarm_driver_s invalid_alarm_driver_1 = {
+        .TurnOnAlarm = NULL,
+        .TurnOffAlarm = TurnOffAlarm,
+    };
+    const struct clock_alarm_driver_s invalid_alarm_driver_2 = {
+        .TurnOnAlarm = TurnOnAlarm,
+        .TurnOffAlarm = NULL,
+    };
+
+    clock_p local_clock = ClockCreate(CLOCK_TICKS_PER_SECONDS, NULL, 86400);
+    TEST_ASSERT_NULL(local_clock);
+    local_clock = ClockCreate(CLOCK_TICKS_PER_SECONDS, &invalid_alarm_driver_1, 86400);
+    TEST_ASSERT_NULL(local_clock);
+    local_clock = ClockCreate(CLOCK_TICKS_PER_SECONDS, &invalid_alarm_driver_2, 86400);
+    TEST_ASSERT_NULL(local_clock);
+}
+
+// 28-Probar al crear el reloj la alarma no este pospuesta, activada ni sonando
+void test_when_create_clock_all_is_ok() {
+    clock_time_u alarm;
+    TEST_ASSERT_EQUAL_INT(0, ClockGetAlarm(clock, &alarm));
+    TEST_ASSERT_EQUAL_INT(0, ClockIsAlarmActivated(clock));
+    TEST_ASSERT_EQUAL_INT(0, ClockIsAlarmRinging(clock));
+}
+
+// 29-Probar que si se crea un reloj con un tiempo de posponer alarma de 24hs= 86400 al apagar la alarma
+// void test_snooze_time_equal_8600_seconds() {
+//     clock_p local_clock = ClockCreate(CLOCK_TICKS_PER_SECONDS, NULL, 86400);
+
+//     static const clock_time_u valid_alarm = {
+//         .time = {.hours = {0, 0}, .minutes = {0, 3}, .seconds = {0, 0}},
+//     };
+//     ClockSetAlarm(local_clock, &valid_alarm); // alarma a las 00:30:00
+
+//     SimulateSeconds(local_clock, 300); // pasaron 5 minutos
+//     ClockTurnOffAlarm(local_clock);
+
+//     SimulateSeconds(local_clock, 86100); // pasaron 24hs desde que sono la alarma
+//     SimulateSeconds(local_clock, 60);    // pasó 1 minuto
+//     TEST_ASSERT_EQUAL_INT(1, ClockIsAlarmRinging(local_clock));
+//     TEST_ASSERT_TRUE(alarm_is_ringing);
+// }
 
 /* === End of documentation ======================================================================================== */
