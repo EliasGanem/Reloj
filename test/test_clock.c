@@ -35,9 +35,9 @@ y un día completo.
 - Fijar la alarma y avanzar el reloj para que suene.
 - Fijar la alarma, deshabilitarla y avanzar el reloj para no suene.
 - Hacer sonar la alarma y posponerla.
-
-- Ver que la alarma suene X tiempo definido despues de ser pospuesta
+- Ver que la alarma vuelva a sonar X tiempo definido despues de ser pospuesta
 - Ver que el timpo X que se define para que se posponga la alarma sea valido
+
 - Hacer sonar la alarma y cancelarla hasta el otro dia..
 - Ver que la alarma se apaga cuando pasan X minutos
 - Ver que la alarma se apaga cuando  la posponen X minutos despues de ser pospuesta
@@ -48,6 +48,7 @@ y un día completo.
 - OBSERVACION nunca actualizo el struct de tiempo ni su bcd current_time
 - Creo que hay un problema en snooze_counter == self->seconds_snoozed (linea 196) cuando no se pospone la alarma creo
 que puede darse esta condicion
+- Ver que pasa si se pospone 24hs
  *
  */
 
@@ -380,8 +381,6 @@ void test_when_the_alarm_is_deactivate_it_does_not_sound() {
     SimulateSeconds(clock, 11);
     TEST_ASSERT_EQUAL_INT(0, ClockIsAlarmRinging(clock));
     TEST_ASSERT_FALSE(alarm_is_ringing);
-
-    alarm_is_ringing = false;
 }
 
 // 23-Hacer sonar la alarma y posponerla.
@@ -402,8 +401,6 @@ void test_when_the_alarm_sounds_it_can_be_snoozed_and_turned_off() {
     ClockSnoozeAlarm(clock);
     TEST_ASSERT_EQUAL_INT(0, ClockIsAlarmRinging(clock));
     TEST_ASSERT_FALSE(alarm_is_ringing);
-
-    alarm_is_ringing = false;
 }
 
 // 24-Ver que la alarma suena X tiempo después de ser pospuesta
@@ -420,6 +417,38 @@ void test_alarm_sounds_after_be_snoozed() {
     SimulateSeconds(clock, 180);  // pasaron 3 minutos
     ClockSnoozeAlarm(clock);
     SimulateSeconds(clock, 300); // pasaron 3 minutos
+    TEST_ASSERT_EQUAL_INT(1, ClockIsAlarmRinging(clock));
+    TEST_ASSERT_TRUE(alarm_is_ringing);
+}
+
+// 25-Ver que el timpo X que se define para que se posponga la alarma sea valido
+void test_that_the_snooze_time_is_valid() {
+
+    clock_p local_clock = ClockCreate(CLOCK_TICKS_PER_SECONDS, &alarm_driver, 86401);
+    TEST_ASSERT_NULL(local_clock);
+}
+
+// 26-Hacer sonar la alarma y apagarla hasta el otro dia..
+void test_the_alarm_sounds_the_next_day_when_its_turned_off() {
+
+    ClockSetTime(clock, &(clock_time_u){0});
+
+    static const clock_time_u valid_alarm = {
+        .time = {.hours = {0, 0}, .minutes = {0, 3}, .seconds = {0, 0}},
+    };
+    ClockSetAlarm(clock, &valid_alarm); // alarma a las 00:30:00
+
+    SimulateSeconds(clock, 1860); // pasaron 31 minutos
+
+    // Apaga la alarma
+    ClockTurnOffAlarm(clock);
+    SimulateSeconds(clock, 240); // pasaron 4 minutos
+    TEST_ASSERT_EQUAL_INT(0, ClockIsAlarmRinging(clock));
+    TEST_ASSERT_FALSE(alarm_is_ringing);
+
+    SimulateSeconds(clock, 86100); // pasaron 24hs desde que sono la alarma
+    SimulateSeconds(clock, 60);    // pasó 1 minuto
+
     TEST_ASSERT_EQUAL_INT(1, ClockIsAlarmRinging(clock));
     TEST_ASSERT_TRUE(alarm_is_ringing);
 }

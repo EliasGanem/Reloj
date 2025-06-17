@@ -33,19 +33,19 @@ SPDX-License-Identifier: MIT
 /* === Private data type declarations ============================================================================== */
 
 struct clock_s {
-    clock_time_u current_time;
-    clock_time_u current_alarm;
-    uint32_t current_alarm_in_seconds;
-    bool valid;
-    bool alarm_set;
-    bool alarm_is_ringing;
-    bool alarm_is_activated;
-    bool snooze_alarm;
-    uint32_t seconds_counter;
-    uint32_t seconds_snoozed;
-    uint16_t ticks_per_second;
-    uint8_t ticks_counter;
-    clock_alarm_driver_p alarm_driver;
+    clock_time_u current_time;         //!< hora actual
+    clock_time_u current_alarm;        //!< hora de la alarma
+    uint32_t current_alarm_in_seconds; //!< hora de la alarma en segundos desde las 00:00:00
+    bool valid;                        //!< indica si la hora del reloj es valida
+    bool alarm_set;                    //!< indica si alarma se configuro alguna vez
+    bool alarm_is_ringing;             //!< indica si la alarma esta sonado
+    bool alarm_is_activated;           //!< indica si la alarma esta desactivada
+    bool snooze_alarm;                 //!< indica si se pospuso la alarma
+    uint32_t seconds_counter;          //!< cantidad de segundos desde las 00:00:00
+    uint32_t seconds_snoozed;          //!< cantidad de segundos que se pospone la alarma
+    uint16_t ticks_per_second;         //!< cantidad de llamadas a @ref ClockNewTick que equivalen a un segundo
+    uint8_t ticks_counter;             //!< canntidad de veces que se llamó a @ref ClockNewTick
+    clock_alarm_driver_p alarm_driver; //! punteros a funcion para controlar la alarma
 };
 
 /* === Private function declarations =============================================================================== */
@@ -128,18 +128,23 @@ static void ClockSecondsToTime(uint32_t seconds, uint8_t * time) {
 
 clock_p ClockCreate(uint16_t ticks_per_second, clock_alarm_driver_p alarm_driver, uint32_t seconds_snoozed) {
     static struct clock_s self[1];
+    clock_p result = self;
 
-    memset(self, 0, sizeof(struct clock_s));
-    self->valid = false;
-    self->alarm_set = false;
-    self->alarm_is_ringing = false;
-    self->alarm_is_activated = false;
-    self->snooze_alarm = false;
-    self->seconds_snoozed = seconds_snoozed;
-    self->ticks_per_second = ticks_per_second;
-    self->alarm_driver = alarm_driver;
+    if (seconds_snoozed > 86400) {
+        result = NULL;
+    } else {
+        memset(self, 0, sizeof(struct clock_s));
+        self->valid = false;
+        self->alarm_set = false;
+        self->alarm_is_ringing = false;
+        self->alarm_is_activated = false;
+        self->snooze_alarm = false;
+        self->seconds_snoozed = seconds_snoozed;
+        self->ticks_per_second = ticks_per_second;
+        self->alarm_driver = alarm_driver;
+    }
 
-    return self;
+    return result;
 }
 
 int ClockGetTime(clock_p self, clock_time_u * result) {
@@ -263,6 +268,11 @@ int ClockIsAlarmActivated(clock_p self) {
 
 void ClockSnoozeAlarm(clock_p self) {
     self->snooze_alarm = true;
+    self->alarm_is_ringing = false;
+    self->alarm_driver->TurnOffAlarm(self);
+}
+
+void ClockTurnOffAlarm(clock_p self) {
     self->alarm_is_ringing = false;
     self->alarm_driver->TurnOffAlarm(self);
 }

@@ -82,8 +82,8 @@ typedef struct clock_alarm_driver_s {
  *
  * @param uint16_t es la cantidad de veces que se llama a @ref ClockNewTick que equivalena  un segundo.
  * @param clock_tunr_on_alarm puntero a una funcion que enciende una alarma
- * @param seconds_snoozed cantiad de segundos que el reloj pospondrá la alarma
- * @return clock_p
+ * @param seconds_snoozed cantidad de segundos que el reloj pospondrá la alarma
+ * @return retorna NULL si la cantidad de segundos que se puede posponer es invalida
  */
 clock_p ClockCreate(uint16_t ticks_per_second, clock_alarm_driver_p alarm_driver, uint32_t seconds_snoozed);
 
@@ -166,6 +166,13 @@ int ClockIsAlarmActivated(clock_p clock);
  * @param clock referencia del reloj
  */
 void ClockSnoozeAlarm(clock_p clock);
+
+/**
+ * @brief Funcion para apagar la alarma, esta sonorá al dia siguiente
+ *
+ * @param clock referencia al reloj
+ */
+void ClockTurnOffAlarm(clock_p clock);
 
 /* === End of conditional blocks =================================================================================== */
 
