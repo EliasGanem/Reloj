@@ -2,6 +2,11 @@
     "files.associations": {
         "limits": "c",
         "stdint.h": "c",
+<<<<<<< HEAD
         "clock.h": "c"
+=======
+        "clock.h": "c",
+        "cstdint": "c"
+>>>>>>> develop
     }
 }

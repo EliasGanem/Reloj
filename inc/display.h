@@ -57,7 +57,6 @@ typedef struct display_s * display_p;
  *
  * Este es un puntero a una función encargada de apagar todos los digitos de una pantalla de displays de 7 segmentos.
  *
- * @param void no recibe nada
  * @return no devuelve nada
  *
  */
@@ -68,8 +67,8 @@ typedef void (*turn_off_digits_p)(void);
  *
  * Este es un puntero a una función encargada de encender todos los segmentos que se le indica, inluyendo el punto.
  *
- * @param uint_8 recibe un byte donde el MSB correponde al punto, MSB-1 correponde al segmento F y el LSB corresponde al
- * LSB
+ * @param new_segments recibe un byte donde el MSB correponde al punto, MSB-1 correponde al segmento F y el LSB
+ * corresponde al LSB
  * @return no devuelve nada
  *
  */
@@ -80,7 +79,7 @@ typedef void (*update_segments_p)(uint8_t new_segments);
  *
  * Este es un puntero a una función que se encarga de encender un digito de una pantalla.
  *
- * @param uint8_t indica que digito se dese prender, el digito correspondiente a la unidad es el 0.
+ * @param digit indica que digito se dese prender, el digito correspondiente a la unidad es el 0.
  * @return no devuelve nada
  */
 typedef void (*turn_on_digit_p)(uint8_t digit);
@@ -103,6 +102,7 @@ typedef struct display_controller_s {
  * posible se utiliza la maxima posible.
  *
  * @param number_of_digits cantidad de dígitos
+ * @param driver referencia a la interfaz con las direcciones de las funciones para controlar el display
  * @return display_p referencia al objeto creado
  */
 display_p DisplayCreate(uint8_t number_of_digits, display_controller_p driver);
@@ -127,11 +127,11 @@ void DisplayWriteBCD(display_p display, uint8_t * bcd_to_show, uint8_t size);
 void DisplayRefresh(display_p display);
 
 /**
- * @brief Función para configurar un parpadero en los dígitos desde @ref from hasta @ref to.
+ * @brief Función para configurar un parpadero en los dígitos desde @p from hasta @p to.
  *
  * El primer display es el número 0.
- * Si la variable @ref number_of_calls es cero entonces se apaga el parpadeo en los dígitos desde from hasta to.
- * En caso de que @ref to sea mayor que la cantidad de dígitos parapadearán los dígitos desde @ref from hasta la
+ * Si la variable @p number_of_calls es cero entonces se apaga el parpadeo en los dígitos desde from hasta to.
+ * En caso de que @p to sea mayor que la cantidad de dígitos parapadearán los dígitos desde @p from hasta la
  * cantidad máxima de digitios. En caso de que from > to, o que from > cantidad de display la función retorna -1.
  *
  * @param display referencia al display
@@ -148,8 +148,8 @@ int DisplayBlinkingDigits(display_p display, uint8_t from, uint8_t to, uint16_t 
  *
  * Se le indica la pantalla, el dígito al que pertenece el punto que se desea controlar.
  * Permite prender, apagar y hacer parpaderar el punto. Para el parpadeo se debe indicar la cantidad de llamadas a la
- * función que se desee que esté en apagado/prendido. Si @ref number_of_calls es cero entonces no parpadea, es caso de
- * estar prendido. El valor de @ref number_of_calls puede ser cualquiera cuando se apaga el punto.
+ * función que se desee que esté en apagado/prendido. Si @p number_of_calls es cero entonces no parpadea, es caso de
+ * estar prendido. El valor de @p number_of_calls puede ser cualquiera cuando se apaga el punto.
  *
  * @param display display que se conrtola
  * @param digit número del dígito al cual pertenece el punto a controlar
