@@ -27,6 +27,7 @@ SPDX-License-Identifier: MIT
 /* === Headers files inclusions ==================================================================================== */
 
 #include <stdint.h>
+#include <stdbool.h>
 
 /* === Header for C++ compatibility ================================================================================ */
 
@@ -80,22 +81,24 @@ typedef struct clock_alarm_driver_s {
  *
  * Solo se puede crear un único reloj
  *
- * @param uint16_t es la cantidad de veces que se llama a @ref ClockNewTick que equivalena  un segundo.
- * @param clock_tunr_on_alarm puntero a una funcion que enciende una alarma
+ * @param ticks_per_second es la cantidad de veces que se llama a @ref ClockNewTick que equivalena  un segundo.
+ * @param alarm_driver puntero a una función que enciende una alarma
  * @param seconds_snoozed cantidad de segundos que el reloj pospondrá la alarma
  * @return retorna NULL si la cantidad de segundos que se puede posponer es invalida
  */
 clock_p ClockCreate(uint16_t ticks_per_second, clock_alarm_driver_p alarm_driver, uint32_t seconds_snoozed);
 
 /**
- * @brief Funcion para obtener la hora actual.
+ * @brief Función para obtener la hora actual.
  *
- * Devuelve la hora actual por referencia con la variable @ref current_time y además devuelve un entero para indicar si
+ * Devuelve la hora actual por referencia con la variable @p current_time y además devuelve un entero para indicar si
  * es la hora es valida.
  *
  * @param clock referencia al reloj
  * @param current_time variable en la que devuelve la hora actual
- * @return int
+ * @return devuelve:
+ *  \li 1 si el reloj se puso en hora valida
+ *  \li 0 si hay que poner en hora el reloj
  */
 int ClockGetTime(clock_p clock, clock_time_u * current_time);
 
@@ -111,7 +114,7 @@ int ClockSetTime(clock_p clock, const clock_time_u * new_time);
 void ClockNewTick(clock_p clock);
 
 /**
- * @brief Funcion para poner la alarma
+ * @brief Función para poner la alarma
  *
  * La hora a la que se pone la alarma debe ser valida, en caso de no serlo se deja el horario anterior. Si nunca se puso
  * un horario para la alarma y la hora enviada es invalida entonces queda por defecto en 00:00:00
@@ -125,18 +128,18 @@ void ClockNewTick(clock_p clock);
 int ClockSetAlarm(clock_p clock, const clock_time_u * new_alarm);
 
 /**
- * @brief Funcion para obtener el horario en el que la alarma suena
+ * @brief Función para obtener el horario en el que la alarma suena
  *
  * @param clock referencia del reloj
  * @param current_alarm variable pasada por referencia, en esta se devuelve la hora actual
  * @return devuelde:
- *  \li 0 en caso de que nunca se le dio un horario a la alarma o el horario es invalido
+ *  \li 0 en caso de que nunca se le dio un horario a la alarma
  *  \li 1 si se puso la alarma
  */
 int ClockGetAlarm(clock_p clock, clock_time_u * current_alarm);
 
 /**
- * @brief Funcion para saber si la alarma del reloj esta sonando
+ * @brief Función para saber si la alarma del reloj esta sonando
  *
  * @param clock referencia al reloj
  * @return devuelve un entero cuyo valor es:
@@ -146,11 +149,14 @@ int ClockGetAlarm(clock_p clock, clock_time_u * current_alarm);
 int ClockIsAlarmRinging(clock_p clock);
 
 /**
- * @brief Función para desactivar la alarma y que no suene
+ * @brief Función para activar y desactivar la alarma.
  *
  * @param clock referenia al reloj
+ * @param state si es:
+ *  \li true activa la alarma
+ *  \li falso desactiva la alarma
  */
-void ClockDeactivateAlarm(clock_p clock);
+void ClockSetAlarmState(clock_p clock, bool state);
 
 /**
  * @brief Función para saber si la alarma esta activa
@@ -161,14 +167,14 @@ void ClockDeactivateAlarm(clock_p clock);
 int ClockIsAlarmActivated(clock_p clock);
 
 /**
- * @brief Funcion para posponer la alarma
+ * @brief Función para posponer la alarma
  *
  * @param clock referencia del reloj
  */
 void ClockSnoozeAlarm(clock_p clock);
 
 /**
- * @brief Funcion para apagar la alarma, esta sonorá al dia siguiente
+ * @brief Función para apagar la alarma, esta sonorá al dia siguiente
  *
  * @param clock referencia al reloj
  */

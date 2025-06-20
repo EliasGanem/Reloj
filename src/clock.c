@@ -26,7 +26,6 @@ SPDX-License-Identifier: MIT
 #include "clock.h"
 #include <stddef.h>
 #include <string.h>
-#include <stdbool.h>
 
 /* === Macros definitions ========================================================================================== */
 
@@ -45,7 +44,7 @@ struct clock_s {
     uint32_t seconds_snoozed;          //!< cantidad de segundos que se pospone la alarma
     uint16_t ticks_per_second;         //!< cantidad de llamadas a @ref ClockNewTick que equivalen a un segundo
     uint8_t ticks_counter;             //!< canntidad de veces que se llamó a @ref ClockNewTick
-    clock_alarm_driver_p alarm_driver; //! punteros a funcion para controlar la alarma
+    clock_alarm_driver_p alarm_driver; //! punteros a función para controlar la alarma
 };
 
 /* === Private function declarations =============================================================================== */
@@ -261,8 +260,8 @@ int ClockIsAlarmRinging(clock_p self) {
     return result;
 }
 
-void ClockDeactivateAlarm(clock_p self) {
-    self->alarm_is_activated = 0;
+void ClockSetAlarmState(clock_p self, bool activate) {
+    self->alarm_is_activated = activate;
 }
 
 int ClockIsAlarmActivated(clock_p self) {

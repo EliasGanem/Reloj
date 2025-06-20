@@ -351,7 +351,7 @@ void test_that_alarm_can_be_deactivated() {
     ClockSetAlarm(clock, &valid_alarm);
     TEST_ASSERT_EQUAL_INT(1, ClockIsAlarmActivated(clock));
 
-    ClockDeactivateAlarm(clock);
+    ClockSetAlarmState(clock, false);
 
     TEST_ASSERT_EQUAL_INT(0, ClockIsAlarmActivated(clock));
 }
@@ -364,7 +364,7 @@ void test_when_the_alarm_is_deactivate_it_does_not_sound() {
     };
     ClockSetAlarm(clock, &valid_alarm);
 
-    ClockDeactivateAlarm(clock);
+    ClockSetAlarmState(clock, false);
 
     SimulateSeconds(clock, 11);
     TEST_ASSERT_EQUAL_INT(0, ClockIsAlarmRinging(clock));
@@ -454,7 +454,7 @@ void test_invalid_alarm_driver_for_ClockCreate() {
     TEST_ASSERT_NULL(local_clock);
 }
 
-// 28-Probar al crear el reloj la alarma no este pospuesta, activada ni sonando
+// 28-Probar que al crear el reloj la alarma no este pospuesta, activada ni sonando
 void test_when_create_clock_all_is_ok() {
     clock_time_u alarm;
     TEST_ASSERT_EQUAL_INT(0, ClockGetAlarm(clock, &alarm));
@@ -463,25 +463,38 @@ void test_when_create_clock_all_is_ok() {
 }
 
 // 29-Verificar que se pueda activar la alarma.
-// void test_alarm_can_be_activated() {
-//}
+void test_alarm_can_be_activated() {
+    static const clock_time_u valid_alarm = {
+        .time = {.hours = {1, 0}, .minutes = {0, 0}, .seconds = {0, 0}},
+    };
 
-// 29-Probar que si se crea un reloj con un tiempo de posponer alarma de 24hs= 86400 al apagar la alarma
-// void test_snooze_time_equal_8600_seconds() {
-//     clock_p local_clock = ClockCreate(CLOCK_TICKS_PER_SECONDS, NULL, 86400);
+    ClockSetAlarm(clock, &valid_alarm); // alarma a las 00:30:00
+    SimulateSeconds(clock, 1800);       // pasaron 30 minutos
+    ClockSetAlarmState(clock, false);
+    SimulateSeconds(clock, 900); // pasaron 30 minutos
+    ClockSetAlarmState(clock, true);
+    SimulateSeconds(clock, 900); // pasaron 30 minutos
 
-//     static const clock_time_u valid_alarm = {
-//         .time = {.hours = {0, 0}, .minutes = {0, 3}, .seconds = {0, 0}},
-//     };
-//     ClockSetAlarm(local_clock, &valid_alarm); // alarma a las 00:30:00
+    TEST_ASSERT_EQUAL_INT(1, ClockIsAlarmActivated(clock));
+    TEST_ASSERT_EQUAL_INT(1, ClockIsAlarmRinging(clock));
+}
 
-//     SimulateSeconds(local_clock, 300); // pasaron 5 minutos
-//     ClockTurnOffAlarm(local_clock);
+// 30-Probar que si se crea un reloj con un tiempo de posponer alarma de 24hs= 86400 al apagar la alarma
+void test_snooze_time_equal_8600_seconds() {
+    clock_p local_clock = ClockCreate(CLOCK_TICKS_PER_SECONDS, &alarm_driver, 86400);
 
-//     SimulateSeconds(local_clock, 86100); // pasaron 24hs desde que sono la alarma
-//     SimulateSeconds(local_clock, 60);    // pasó 1 minuto
-//     TEST_ASSERT_EQUAL_INT(1, ClockIsAlarmRinging(local_clock));
-//     TEST_ASSERT_TRUE(alarm_is_ringing);
-// }
+    static const clock_time_u valid_alarm = {
+        .time = {.hours = {0, 0}, .minutes = {0, 3}, .seconds = {0, 0}},
+    };
+    ClockSetAlarm(local_clock, &valid_alarm); // alarma a las 00:30:00
+
+    SimulateSeconds(local_clock, 300); // pasaron 5 minutos
+    ClockTurnOffAlarm(local_clock);
+
+    SimulateSeconds(local_clock, 86100); // pasaron 24hs desde que sono la alarma
+
+    TEST_ASSERT_EQUAL_INT(1, ClockIsAlarmRinging(local_clock));
+    TEST_ASSERT_TRUE(alarm_is_ringing);
+}
 
 /* === End of documentation ======================================================================================== */
