@@ -100,6 +100,7 @@ static const struct clock_alarm_driver_s alarm_driver = {
 
 void setUp(void) {
     clock = ClockCreate(CLOCK_TICKS_PER_SECONDS, &alarm_driver, CLOCK_SECONDS_OF_SNOOZE);
+    ClockSetTime(clock, &(clock_time_u){0});
     alarm_is_ringing = false;
 }
 
@@ -149,7 +150,6 @@ void test_set_up_and_adjust_with_valid_time(void) {
 // 3-Después de n ciclos de reloj la hora avanza un segundo
 void test_clock_advance_one_second(void) {
 
-    ClockSetTime(clock, &(clock_time_u){0});
     SimulateSeconds(clock, 1);
 
     clock_time_u current_time = {0};
@@ -160,7 +160,6 @@ void test_clock_advance_one_second(void) {
 // 4-Después de n ciclos de reloj la hora avanza 10 segundos
 void test_clock_advance_ten_seconds(void) {
 
-    ClockSetTime(clock, &(clock_time_u){0});
     SimulateSeconds(clock, 10);
 
     clock_time_u current_time = {0};
@@ -171,7 +170,6 @@ void test_clock_advance_ten_seconds(void) {
 // 5-Después de n ciclos de reloj la hora avanza 55 segundos
 void test_clock_advance_fiftyfive_seconds(void) {
 
-    ClockSetTime(clock, &(clock_time_u){0});
     SimulateSeconds(clock, 55);
 
     clock_time_u current_time = {0};
@@ -182,7 +180,6 @@ void test_clock_advance_fiftyfive_seconds(void) {
 // 6-Después de n ciclos de reloj la hora avanza un minuto
 void test_clock_advance_one_minute(void) {
 
-    ClockSetTime(clock, &(clock_time_u){0});
     SimulateSeconds(clock, 60);
 
     clock_time_u current_time = {0};
@@ -193,7 +190,6 @@ void test_clock_advance_one_minute(void) {
 // 7-Después de n ciclos de reloj la hora avanza 10 minutos
 void test_clock_advance_ten_minutes(void) {
 
-    ClockSetTime(clock, &(clock_time_u){0});
     SimulateSeconds(clock, 600);
 
     clock_time_u current_time = {0};
@@ -204,7 +200,6 @@ void test_clock_advance_ten_minutes(void) {
 // 8-Después de n ciclos de reloj la hora avanza 55 minutos
 void test_clock_advance_fiftyfive_minutes(void) {
 
-    ClockSetTime(clock, &(clock_time_u){0});
     SimulateSeconds(clock, 3300);
 
     clock_time_u current_time = {0};
@@ -215,7 +210,6 @@ void test_clock_advance_fiftyfive_minutes(void) {
 // 9-Después de n ciclos de reloj la hora avanza una hora
 void test_clock_advance_one_hour(void) {
 
-    ClockSetTime(clock, &(clock_time_u){0});
     SimulateSeconds(clock, 3600);
 
     clock_time_u current_time = {0};
@@ -226,7 +220,6 @@ void test_clock_advance_one_hour(void) {
 // 10-Después de n ciclos de reloj la hora avanza 10 horas
 void test_clock_advance_ten_hours(void) {
 
-    ClockSetTime(clock, &(clock_time_u){0});
     SimulateSeconds(clock, 36000);
 
     clock_time_u current_time = {0};
@@ -237,7 +230,6 @@ void test_clock_advance_ten_hours(void) {
 // 11-Al superar 24hs vuelve a 00:00:00
 void test_clock_advance_one_day(void) {
 
-    ClockSetTime(clock, &(clock_time_u){0});
     SimulateSeconds(clock, 86400);
 
     clock_time_u current_time = {0};
@@ -247,7 +239,6 @@ void test_clock_advance_one_day(void) {
 
 // 12-Ajustar la hora con valor invalido de horas y ver que no los guarda.
 void test_set_up_with_invalid_hour(void) {
-    ClockSetTime(clock, &(clock_time_u){0});
 
     static const clock_time_u new_time = {
         .time = {.hours = {5, 2}, .minutes = {0, 0}, .seconds = {0, 0}},
@@ -261,7 +252,6 @@ void test_set_up_with_invalid_hour(void) {
 
 // 13-Ajustar la hora con valor invalido de minutos y ver que no los guarda.
 void test_set_up_with_invalid_minutes(void) {
-    ClockSetTime(clock, &(clock_time_u){0});
 
     static const clock_time_u new_time = {
         .time = {.hours = {0, 0}, .minutes = {1, 6}, .seconds = {0, 0}},
@@ -275,7 +265,6 @@ void test_set_up_with_invalid_minutes(void) {
 
 // 14-Ajustar la hora con valor invalido de segundos y ver que no los guarda.
 void test_set_up_with_invalid_seconds(void) {
-    ClockSetTime(clock, &(clock_time_u){0});
 
     static const clock_time_u new_time = {
         .time = {.hours = {0, 0}, .minutes = {0, 0}, .seconds = {1, 6}},
@@ -335,7 +324,6 @@ void test_set_alarm_with_valid_seconds() {
 // 20-Fijar la alarma y avanzar el reloj para que suene.
 void test_that_the_alarm_turns_on_when_it_should() {
 
-    ClockSetTime(clock, &(clock_time_u){0});
     alarm_is_ringing = false;
 
     static const clock_time_u valid_alarm = {
@@ -357,8 +345,6 @@ void test_that_the_alarm_turns_on_when_it_should() {
 // 21-Fijar la alarma, deshabilitarla
 void test_that_alarm_can_be_deactivated() {
 
-    ClockSetTime(clock, &(clock_time_u){0});
-
     static const clock_time_u valid_alarm = {
         .time = {.hours = {0, 0}, .minutes = {0, 0}, .seconds = {0, 1}},
     };
@@ -372,8 +358,6 @@ void test_that_alarm_can_be_deactivated() {
 
 // 22-Ver que cuando la alarma esté seteada y deshabilitada no suene
 void test_when_the_alarm_is_deactivate_it_does_not_sound() {
-
-    ClockSetTime(clock, &(clock_time_u){0});
 
     static const clock_time_u valid_alarm = {
         .time = {.hours = {0, 0}, .minutes = {0, 0}, .seconds = {1, 1}},
@@ -389,8 +373,6 @@ void test_when_the_alarm_is_deactivate_it_does_not_sound() {
 
 // 23-Hacer sonar la alarma y posponerla.
 void test_when_the_alarm_sounds_it_can_be_snoozed_and_turned_off() {
-
-    ClockSetTime(clock, &(clock_time_u){0});
 
     static const clock_time_u valid_alarm = {
         .time = {.hours = {0, 0}, .minutes = {0, 3}, .seconds = {0, 0}},
@@ -409,8 +391,6 @@ void test_when_the_alarm_sounds_it_can_be_snoozed_and_turned_off() {
 
 // 24-Ver que la alarma suena X tiempo después de ser pospuesta
 void test_alarm_sounds_after_be_snoozed() {
-
-    ClockSetTime(clock, &(clock_time_u){0});
 
     static const clock_time_u valid_alarm = {
         .time = {.hours = {0, 0}, .minutes = {0, 3}, .seconds = {0, 0}},
@@ -434,8 +414,6 @@ void test_that_the_snooze_time_is_valid() {
 
 // 26-Hacer sonar la alarma y apagarla hasta el otro dia..
 void test_the_alarm_sounds_the_next_day_when_its_turned_off() {
-
-    ClockSetTime(clock, &(clock_time_u){0});
 
     static const clock_time_u valid_alarm = {
         .time = {.hours = {0, 0}, .minutes = {0, 3}, .seconds = {0, 0}},
@@ -483,6 +461,10 @@ void test_when_create_clock_all_is_ok() {
     TEST_ASSERT_EQUAL_INT(0, ClockIsAlarmActivated(clock));
     TEST_ASSERT_EQUAL_INT(0, ClockIsAlarmRinging(clock));
 }
+
+// 29-Verificar que se pueda activar la alarma.
+// void test_alarm_can_be_activated() {
+//}
 
 // 29-Probar que si se crea un reloj con un tiempo de posponer alarma de 24hs= 86400 al apagar la alarma
 // void test_snooze_time_equal_8600_seconds() {
