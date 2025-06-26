@@ -41,44 +41,56 @@
 /* === Headers files inclusions =============================================================== */
 
 #include "shield.h"
+#include "edusia_config.h"
+#include "chip.h"
 #include <stdbool.h>
 
 /* === Macros definitions ====================================================================== */
 
 /* === Private data type declarations ========================================================== */
-
+static digital_output_p led_1;
 /* === Private variable declarations =========================================================== */
 
 /* === Private function declarations =========================================================== */
-
+static void ConfigureSystick(void);
 /* === Public variable definitions ============================================================= */
 
 /* === Private variable definitions ============================================================ */
 
 /* === Private function implementation ========================================================= */
 
+static void ConfigureSystick(void) {
+    SystemCoreClockUpdate();
+    SysTick_Config((SystemCoreClock / 1000) - 1);
+
+    // NVIC_SetPriority(SysTick_IRQn, (1 << __NVIC_PRIO_BITS) - 1);
+}
+
 /* === Public function implementation ========================================================= */
 
 int main(void) {
-    uint8_t value[] = {3, 2, 1, 0};
+    // uint8_t value[] = {3, 2, 1, 0};
 
-    shield_p shield = ShieldCreate();
+    // shield_p shield = ShieldCreate();
+    led_1 = DigitalOutputCreate(LED_1_GPIO, LED_1_BIT);
 
-    DisplayWriteBCD(shield->display, value, sizeof(value));
-    DisplayBlinkingDigits(shield->display, 2, 3, 25);
-    DisplayDot(shield->display, 0, true, 20);
-    DisplayDot(shield->display, 1, true, 20);
-    DisplayDot(shield->display, 2, true, 40);
-    DisplayDot(shield->display, 3, true, 40);
+    ConfigureSystick();
 
-    while (true) {
-        DisplayRefresh(shield->display);
-        // for (int index = 0; index < 100; index++) {
-        for (int delay = 0; delay < 25000; delay++) {
-            __asm("NOP");
-        }
-        //}
+    // DisplayWriteBCD(shield->display, value, sizeof(value));
+    // DisplayBlinkingDigits(shield->display, 2, 3, 25);
+    // DisplayDot(shield->display, 0, true, 20);
+    // DisplayDot(shield->display, 1, true, 20);
+    // DisplayDot(shield->display, 2, true, 40);
+    // DisplayDot(shield->display, 3, true, 40);
+}
+
+void SysTick_Handler(void) {
+    static int count = 1;
+    if (count == 1000) {
+        DigitalOutputToggle(led_1);
+        count = 1;
     }
+    count++;
 }
 
 /* === End of documentation ==================================================================== */
