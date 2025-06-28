@@ -48,14 +48,32 @@
 /* === Macros definitions ====================================================================== */
 
 /* === Private data type declarations ========================================================== */
-static digital_output_p led_1;
+
+//! Representa los estados en lo que puede estar el reloj
+typedef enum states_e {
+    show_time,
+    ajust_time,
+    ajust_alarm,
+} * states_p;
+
 /* === Private variable declarations =========================================================== */
 
 /* === Private function declarations =========================================================== */
+
 static void ConfigureSystick(void);
+
+// static void ChangeState(states_p current_state);
+
 /* === Public variable definitions ============================================================= */
 
 /* === Private variable definitions ============================================================ */
+
+//! Contador de milisegundos, para tener un control de tiempo en main
+static volatile uint32_t milliseconds = 0;
+
+//! Led para probar que anda el SysTick
+static digital_output_p led_1;
+static digital_output_p led_2;
 
 /* === Private function implementation ========================================================= */
 
@@ -69,12 +87,20 @@ static void ConfigureSystick(void) {
 /* === Public function implementation ========================================================= */
 
 int main(void) {
-    // uint8_t value[] = {3, 2, 1, 0};
+    // static states_p current_state = &(enum states_e){show_time};
+    uint32_t aux = 0;
 
     // shield_p shield = ShieldCreate();
     led_1 = DigitalOutputCreate(LED_1_GPIO, LED_1_BIT);
+    led_2 = DigitalOutputCreate(LED_2_GPIO, LED_2_BIT);
 
     ConfigureSystick();
+    while (1) {
+        if ((milliseconds - aux) == 1000) {
+            DigitalOutputToggle(led_2);
+            aux = milliseconds;
+        }
+    }
 
     // DisplayWriteBCD(shield->display, value, sizeof(value));
     // DisplayBlinkingDigits(shield->display, 2, 3, 25);
@@ -91,6 +117,8 @@ void SysTick_Handler(void) {
         count = 1;
     }
     count++;
+
+    milliseconds++;
 }
 
 /* === End of documentation ==================================================================== */
