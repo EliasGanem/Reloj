@@ -41,10 +41,11 @@
 /* === Headers files inclusions =============================================================== */
 
 #include "shield.h"
-#include "edusia_config.h"
+#include "clock.h"
 #include "chip.h"
 #include <stdbool.h>
 
+#include "edusia_config.h" // solo para usar los leds
 /* === Macros definitions ====================================================================== */
 
 /* === Private data type declarations ========================================================== */
@@ -64,9 +65,15 @@ static void ConfigureSystick(void);
 
 // static void ChangeState(states_p current_state);
 
+void TurnOnAlarm(clock_p clock);  // No deberia ser publica?
+void TurnOffAlarm(clock_p clock); // No deberia ser publica?
+
 /* === Public variable definitions ============================================================= */
 
 /* === Private variable definitions ============================================================ */
+
+//! Referencia al objeto reloj
+static volatile clock_p clock;
 
 //! Contador de milisegundos, para tener un control de tiempo en main
 static volatile uint32_t milliseconds = 0;
@@ -85,6 +92,14 @@ static void ConfigureSystick(void) {
     // NVIC_SetPriority(SysTick_IRQn, (1 << __NVIC_PRIO_BITS) - 1);
 }
 
+void TurnOnAlarm(clock_p clock) {
+    (void)clock;
+}
+
+void TurnOffAlarm(clock_p clock) {
+    (void)clock;
+}
+
 /* === Public function implementation ========================================================= */
 
 int main(void) {
@@ -100,8 +115,16 @@ int main(void) {
     led_2 = DigitalOutputCreate(LED_2_GPIO, LED_2_BIT);
     led_3 = DigitalOutputCreate(LED_3_GPIO, LED_3_BIT);
 
+    clock_alarm_driver_p alarm_driver = &(struct clock_alarm_driver_s){
+        .TurnOnAlarm = TurnOnAlarm,
+        .TurnOffAlarm = TurnOffAlarm,
+    };
+
+    clock = ClockCreate(1000, alarm_driver, 300);
+
     ConfigureSystick();
 
+    // Al inicio veo cuanto tiempo pasó y al final hago lo que corresponde al estado
     while (1) {
         DisplayWriteBCD(shield->display, value, sizeof(value));
         if (milliseconds == 86400000) {
@@ -115,6 +138,7 @@ int main(void) {
 
         if ((milliseconds - aux_10ms) == 10) {
             aux_10ms = milliseconds;
+
             if (DigitalInputGetIsActive(shield->accept)) {
                 DigitalOutputActivate(led_3);
             } else if (!DigitalInputGetIsActive(shield->accept)) {
@@ -132,13 +156,7 @@ int main(void) {
 }
 
 void SysTick_Handler(void) {
-    static int count = 1;
-    if (count == 1000) {
-        DigitalOutputToggle(led_1);
-        count = 1;
-    }
-    count++;
-
+    ClockNewTick(clock);
     milliseconds++;
 }
 
