@@ -74,6 +74,7 @@ static volatile uint32_t milliseconds = 0;
 //! Led para probar que anda el SysTick
 static digital_output_p led_1;
 static digital_output_p led_2;
+static digital_output_p led_3;
 
 /* === Private function implementation ========================================================= */
 
@@ -88,26 +89,46 @@ static void ConfigureSystick(void) {
 
 int main(void) {
     // static states_p current_state = &(enum states_e){show_time};
-    uint32_t aux = 0;
+    uint32_t aux_1s = 0;
+    uint32_t aux_1ms = 0;
+    uint32_t aux_10ms = 0;
 
-    // shield_p shield = ShieldCreate();
+    uint8_t value[4] = {1, 2, 3, 4};
+
+    shield_p shield = ShieldCreate();
     led_1 = DigitalOutputCreate(LED_1_GPIO, LED_1_BIT);
     led_2 = DigitalOutputCreate(LED_2_GPIO, LED_2_BIT);
+    led_3 = DigitalOutputCreate(LED_3_GPIO, LED_3_BIT);
 
     ConfigureSystick();
+
     while (1) {
-        if ((milliseconds - aux) == 1000) {
+        DisplayWriteBCD(shield->display, value, sizeof(value));
+        if (milliseconds == 86400000) {
+            milliseconds = milliseconds - aux_1s; // para mantener el 1[s] que es mas importante que el 1[ms]
+        }
+
+        if ((milliseconds - aux_1ms) == 1) {
+            DisplayRefresh(shield->display);
+            aux_1ms = milliseconds;
+        }
+
+        if ((milliseconds - aux_10ms) == 10) {
+            aux_10ms = milliseconds;
+            if (DigitalInputGetIsActive(shield->accept)) {
+                DigitalOutputActivate(led_3);
+            } else if (!DigitalInputGetIsActive(shield->accept)) {
+                DigitalOutputDeactivate(led_3);
+            }
+        }
+
+        if ((milliseconds - aux_1s) == 1000) {
             DigitalOutputToggle(led_2);
-            aux = milliseconds;
+            aux_1s = milliseconds;
         }
     }
 
-    // DisplayWriteBCD(shield->display, value, sizeof(value));
     // DisplayBlinkingDigits(shield->display, 2, 3, 25);
-    // DisplayDot(shield->display, 0, true, 20);
-    // DisplayDot(shield->display, 1, true, 20);
-    // DisplayDot(shield->display, 2, true, 40);
-    // DisplayDot(shield->display, 3, true, 40);
 }
 
 void SysTick_Handler(void) {
