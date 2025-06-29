@@ -207,7 +207,7 @@ static void TurnOffDigits(void) {
 }
 
 static void TurnOnDigit(uint8_t digit) {
-    Chip_GPIO_SetValue(LPC_GPIO_PORT, DIGITS_GPIO, (1 << (3 - digit)) & DIGITS_MASK);
+    Chip_GPIO_SetValue(LPC_GPIO_PORT, DIGITS_GPIO, (1 << (digit)) & DIGITS_MASK); // (3 - digit)
 }
 
 static void UpdateSegments(uint8_t segments) {
