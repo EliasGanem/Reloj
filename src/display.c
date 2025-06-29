@@ -134,6 +134,7 @@ display_p DisplayCreate(uint8_t number_of_digits, display_controller_p driver) {
         self->current_digit = 0;
         self->blinking->calls = 0;
         self->blinking->count = 0;
+        memset(self->video_memory, 0, sizeof(self->video_memory));
         for (uint8_t i = 0; i < self->digits; i++) {
             self->blinking->dots_calls[i] = 0;
             self->blinking->dots_count[i] = 0;
@@ -144,14 +145,20 @@ display_p DisplayCreate(uint8_t number_of_digits, display_controller_p driver) {
 }
 
 void DisplayWriteBCD(display_p self, uint8_t * value, uint8_t size) {
-    memset(self->video_memory, 0, sizeof(self->video_memory));
+    uint8_t dot_bits[self->digits];
 
     if (size > self->digits) {
         size = self->digits;
     }
 
     for (uint8_t i = 0; i < size; i++) {
+        dot_bits[i] = self->video_memory[i] & SEGMENT_DOT_MASK;
+    }
+    memset(self->video_memory, 0, sizeof(self->video_memory));
+
+    for (uint8_t i = 0; i < size; i++) {
         self->video_memory[i] = self->video_memory[i] | NUMBERS[value[i]];
+        self->video_memory[i] = self->video_memory[i] | dot_bits[i];
     }
 }
 
