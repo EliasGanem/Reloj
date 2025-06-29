@@ -60,6 +60,7 @@ typedef enum {
     show_time,
     adjust_time,
     adjust_alarm,
+    invalid_time,
 } states_e;
 
 //! Struct que contiene los parametros de la funcion @ref CheckButtonHoldTime
@@ -86,7 +87,7 @@ static void ConfigureSystick(void);
  * Si el cambio es invalido devuelve el mismo estado en el que esta
  *
  */
-static states_e ChangeState(states_e current_state, states_e next_state);
+// static states_e ChangeState(states_e current_state, states_e next_state);
 
 /**
  * @brief Funcion para mejorar legibilidad de main
@@ -126,38 +127,6 @@ static void ConfigureSystick(void) {
     // NVIC_SetPriority(SysTick_IRQn, (1 << __NVIC_PRIO_BITS) - 1);
 }
 
-static states_e ChangeState(states_e current_state, states_e next_state) {
-    states_e result = current_state;
-
-    switch (next_state) {
-    case show_time:
-        result = show_time;
-        break;
-    case adjust_time:
-        if (current_state == adjust_alarm || current_state == adjust_time) {
-            result = current_state;
-        } else {
-            result = adjust_time;
-        }
-        break;
-    case adjust_alarm:
-        if (current_state == adjust_time || current_state == adjust_alarm) {
-            result = current_state;
-        } else {
-            result = adjust_alarm;
-        }
-        break;
-
-    default:
-        result = show_time;
-        break;
-    }
-
-    result = next_state;
-
-    return result;
-}
-
 static bool KeepedHoldButton(check_button_hold_p check_values) {
     bool result = 0;
     if (DigitalInputGetIsActive(check_values->button) && check_values->counter < check_values->time_to_hold) {
@@ -185,13 +154,10 @@ void TurnOffAlarm(clock_p clock) {
 
 int main(void) {
     states_e current_state = show_time;
-    states_e next_state = show_time;
 
     uint32_t aux_1s = 0;
     uint32_t aux_1ms = 0;
     uint32_t aux_10ms = 0;
-
-    uint8_t value[4] = {1, 2, 3, 4};
 
     shield_p shield = ShieldCreate();
 
@@ -211,6 +177,10 @@ int main(void) {
     led_2 = DigitalOutputCreate(LED_2_GPIO, LED_2_BIT);
     led_3 = DigitalOutputCreate(LED_3_GPIO, LED_3_BIT);
     led_b = DigitalOutputCreate(LED_B_GPIO, LED_B_BIT);
+    DigitalOutputDeactivate(led_1);
+    DigitalOutputDeactivate(led_2);
+    DigitalOutputDeactivate(led_3);
+    DigitalOutputDeactivate(led_b);
 
     clock_alarm_driver_p alarm_driver = &(struct clock_alarm_driver_s){
         .TurnOnAlarm = TurnOnAlarm,
@@ -218,12 +188,14 @@ int main(void) {
     };
 
     clock = ClockCreate(1000, alarm_driver, 300);
+    clock_time_u current_time;
 
     ConfigureSystick();
 
-    DisplayWriteBCD(shield->display, value, sizeof(value));
+    DisplayBlinkingDigits(shield->display, 0, 3, 100); // La 1ra vez que enciende Parpadea
+    DisplayDot(shield->display, 2, true, 100);
 
-    // Al inicio veo cuanto tiempo pasó y al final hago lo que corresponde al estado
+    //  Al inicio veo cuanto tiempo pasó y al final hago lo que corresponde al estado
     while (1) {
         if (milliseconds == 86400000) {
             milliseconds = milliseconds - aux_1s; // para mantener el 1[s] que es mas importante que el 1[ms]
@@ -238,24 +210,30 @@ int main(void) {
             aux_10ms = milliseconds;
 
             switch (current_state) {
+            case invalid_time:
+                if (ClockGetTime(clock, &current_time)) { // ver si cambiar esta funcion para poder enviarle NULL
+                    current_state = show_time;
+                    DisplayBlinkingDigits(shield->display, 0, 2, 300);
+                }
+                break;
             case show_time:
                 if (KeepedHoldButton(set_time)) {
-                    next_state = adjust_time;
+                    current_state = adjust_time;
                 }
                 if (KeepedHoldButton(set_alarm)) {
-                    next_state = adjust_alarm;
+                    current_state = adjust_alarm;
                 }
 
                 break;
             case adjust_time:
                 if (DigitalInputGetIsActive(shield->accept) || DigitalInputGetIsActive(shield->cancel)) {
-                    next_state = show_time;
+                    current_state = show_time;
                 }
 
                 break;
             case adjust_alarm:
                 if (DigitalInputGetIsActive(shield->accept) || DigitalInputGetIsActive(shield->cancel)) {
-                    next_state = show_time;
+                    current_state = show_time;
                 }
 
                 break;
@@ -263,8 +241,6 @@ int main(void) {
             default:
                 break;
             }
-
-            current_state = ChangeState(current_state, next_state);
         }
 
         if ((milliseconds - aux_1s) == 1000) {
@@ -272,11 +248,23 @@ int main(void) {
         }
 
         switch (current_state) {
+        case invalid_time:
+            DigitalOutputDeactivate(led_1);
+            DigitalOutputDeactivate(led_2);
+            DigitalOutputDeactivate(led_3);
+            DigitalOutputActivate(led_b);
+
+            ClockGetTime(clock, &current_time);
+            DisplayWriteBCD(shield->display, current_time.bcd, sizeof(current_time.bcd));
+            break;
         case show_time:
 
             DigitalOutputActivate(led_1);
             DigitalOutputDeactivate(led_2);
             DigitalOutputDeactivate(led_3);
+
+            ClockGetTime(clock, &current_time);
+            DisplayWriteBCD(shield->display, current_time.bcd, sizeof(current_time.bcd));
 
             break;
         case adjust_time:
