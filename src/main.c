@@ -46,16 +46,28 @@
 #include <stdbool.h>
 
 #include "edusia_config.h" // solo para usar los leds
+
 /* === Macros definitions ====================================================================== */
+
+#ifndef TIME_TO_HOLD_TO_CHANGE_STATE_MS
+#define TIME_TO_HOLD_TO_CHANGE_STATE_MS 300
+#endif
 
 /* === Private data type declarations ========================================================== */
 
 //! Representa los estados en lo que puede estar el reloj
-typedef enum states_e {
+typedef enum {
     show_time,
-    ajust_time,
-    ajust_alarm,
-} * states_p;
+    adjust_time,
+    adjust_alarm,
+} states_e;
+
+//! Struct que contiene los parametros de la funcion @ref CheckButtonHoldTime
+typedef struct check_button_hold_s {
+    const digital_input_p button; //!< botón
+    uint32_t counter;             //!< contador propio del boton
+    const uint32_t time_to_hold;  //!< tiempo que se desea que se controle el boton.
+} * check_button_hold_p;
 
 /* === Private variable declarations =========================================================== */
 
@@ -63,7 +75,28 @@ typedef enum states_e {
 
 static void ConfigureSystick(void);
 
-// static void ChangeState(states_p current_state);
+/**
+ * @brief Función para realizar el cambio de estado de la MEF del reloj
+ *
+ * Se encarga de verificar si el estado siguiente se valido
+ *
+ * @param current_state
+ * @param next_state
+ * @return retorna el estado siguiente de la MEF, si el cambio de estado es posible.
+ * Si el cambio es invalido devuelve el mismo estado en el que esta
+ *
+ */
+static states_e ChangeState(states_e current_state, states_e next_state);
+
+/**
+ * @brief Funcion para mejorar legibilidad de main
+ * Se encarga de verificar que los botones se mantienen pulsados el tiempo necesario
+ * @param check_values
+ * @return retorna:
+ *  \li 1 si se mantuvo presionado el botón el tiempo necesario
+ *  \li 0 si no se lo mantuvo presionado lo suficiente
+ */
+static bool KeepedHoldButton(check_button_hold_p check_values);
 
 void TurnOnAlarm(clock_p clock);  // No deberia ser publica?
 void TurnOffAlarm(clock_p clock); // No deberia ser publica?
@@ -73,7 +106,7 @@ void TurnOffAlarm(clock_p clock); // No deberia ser publica?
 /* === Private variable definitions ============================================================ */
 
 //! Referencia al objeto reloj
-static volatile clock_p clock;
+static clock_p clock;
 
 //! Contador de milisegundos, para tener un control de tiempo en main
 static volatile uint32_t milliseconds = 0;
@@ -82,6 +115,7 @@ static volatile uint32_t milliseconds = 0;
 static digital_output_p led_1;
 static digital_output_p led_2;
 static digital_output_p led_3;
+static digital_output_p led_b;
 
 /* === Private function implementation ========================================================= */
 
@@ -90,6 +124,53 @@ static void ConfigureSystick(void) {
     SysTick_Config((SystemCoreClock / 1000) - 1);
 
     // NVIC_SetPriority(SysTick_IRQn, (1 << __NVIC_PRIO_BITS) - 1);
+}
+
+static states_e ChangeState(states_e current_state, states_e next_state) {
+    states_e result = current_state;
+
+    switch (next_state) {
+    case show_time:
+        result = show_time;
+        break;
+    case adjust_time:
+        if (current_state == adjust_alarm || current_state == adjust_time) {
+            result = current_state;
+        } else {
+            result = adjust_time;
+        }
+        break;
+    case adjust_alarm:
+        if (current_state == adjust_time || current_state == adjust_alarm) {
+            result = current_state;
+        } else {
+            result = adjust_alarm;
+        }
+        break;
+
+    default:
+        result = show_time;
+        break;
+    }
+
+    result = next_state;
+
+    return result;
+}
+
+static bool KeepedHoldButton(check_button_hold_p check_values) {
+    bool result = 0;
+    if (DigitalInputGetIsActive(check_values->button) && check_values->counter < check_values->time_to_hold) {
+        check_values->counter++;
+        if (check_values->counter == check_values->time_to_hold) {
+            check_values->counter = 0;
+            result = 1;
+        }
+    } else {
+        check_values->counter = 0;
+        result = 0;
+    }
+    return result;
 }
 
 void TurnOnAlarm(clock_p clock) {
@@ -103,7 +184,9 @@ void TurnOffAlarm(clock_p clock) {
 /* === Public function implementation ========================================================= */
 
 int main(void) {
-    // static states_p current_state = &(enum states_e){show_time};
+    states_e current_state = show_time;
+    states_e next_state = show_time;
+
     uint32_t aux_1s = 0;
     uint32_t aux_1ms = 0;
     uint32_t aux_10ms = 0;
@@ -111,9 +194,23 @@ int main(void) {
     uint8_t value[4] = {1, 2, 3, 4};
 
     shield_p shield = ShieldCreate();
+
+    // preguntar: no lo puedo hacer static xq un argumento se crea en t de ejecucion
+    volatile check_button_hold_p set_time = &(struct check_button_hold_s){
+        .button = shield->set_time,
+        .counter = 0,
+        .time_to_hold = TIME_TO_HOLD_TO_CHANGE_STATE_MS,
+    };
+    volatile check_button_hold_p set_alarm = &(struct check_button_hold_s){
+        .button = shield->set_alarm,
+        .counter = 0,
+        .time_to_hold = TIME_TO_HOLD_TO_CHANGE_STATE_MS,
+    };
+
     led_1 = DigitalOutputCreate(LED_1_GPIO, LED_1_BIT);
     led_2 = DigitalOutputCreate(LED_2_GPIO, LED_2_BIT);
     led_3 = DigitalOutputCreate(LED_3_GPIO, LED_3_BIT);
+    led_b = DigitalOutputCreate(LED_B_GPIO, LED_B_BIT);
 
     clock_alarm_driver_p alarm_driver = &(struct clock_alarm_driver_s){
         .TurnOnAlarm = TurnOnAlarm,
@@ -124,35 +221,81 @@ int main(void) {
 
     ConfigureSystick();
 
+    DisplayWriteBCD(shield->display, value, sizeof(value));
+
     // Al inicio veo cuanto tiempo pasó y al final hago lo que corresponde al estado
     while (1) {
-        DisplayWriteBCD(shield->display, value, sizeof(value));
         if (milliseconds == 86400000) {
             milliseconds = milliseconds - aux_1s; // para mantener el 1[s] que es mas importante que el 1[ms]
         }
 
         if ((milliseconds - aux_1ms) == 1) {
-            DisplayRefresh(shield->display);
             aux_1ms = milliseconds;
+            DisplayRefresh(shield->display);
         }
 
         if ((milliseconds - aux_10ms) == 10) {
             aux_10ms = milliseconds;
 
-            if (DigitalInputGetIsActive(shield->accept)) {
-                DigitalOutputActivate(led_3);
-            } else if (!DigitalInputGetIsActive(shield->accept)) {
-                DigitalOutputDeactivate(led_3);
+            switch (current_state) {
+            case show_time:
+                if (KeepedHoldButton(set_time)) {
+                    next_state = adjust_time;
+                }
+                if (KeepedHoldButton(set_alarm)) {
+                    next_state = adjust_alarm;
+                }
+
+                break;
+            case adjust_time:
+                if (DigitalInputGetIsActive(shield->accept) || DigitalInputGetIsActive(shield->cancel)) {
+                    next_state = show_time;
+                }
+
+                break;
+            case adjust_alarm:
+                if (DigitalInputGetIsActive(shield->accept) || DigitalInputGetIsActive(shield->cancel)) {
+                    next_state = show_time;
+                }
+
+                break;
+
+            default:
+                break;
             }
+
+            current_state = ChangeState(current_state, next_state);
         }
 
         if ((milliseconds - aux_1s) == 1000) {
-            DigitalOutputToggle(led_2);
             aux_1s = milliseconds;
         }
-    }
 
-    // DisplayBlinkingDigits(shield->display, 2, 3, 25);
+        switch (current_state) {
+        case show_time:
+
+            DigitalOutputActivate(led_1);
+            DigitalOutputDeactivate(led_2);
+            DigitalOutputDeactivate(led_3);
+
+            break;
+        case adjust_time:
+            DigitalOutputActivate(led_2);
+            DigitalOutputDeactivate(led_1);
+            DigitalOutputDeactivate(led_3);
+            break;
+        case adjust_alarm:
+            DigitalOutputActivate(led_3);
+            DigitalOutputDeactivate(led_1);
+            DigitalOutputDeactivate(led_2);
+            break;
+        default:
+            DigitalOutputDeactivate(led_1);
+            DigitalOutputDeactivate(led_2);
+            DigitalOutputDeactivate(led_3);
+            break;
+        }
+    }
 }
 
 void SysTick_Handler(void) {
