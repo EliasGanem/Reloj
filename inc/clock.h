@@ -180,6 +180,14 @@ void ClockSnoozeAlarm(clock_p clock);
  */
 void ClockTurnOffAlarm(clock_p clock);
 
+/**
+ * @brief Funcion que devuleve la hora del reloj aunque esta sea invalida;
+ *
+ * @param clock
+ * @return uint32_t
+ */
+uint32_t ClockGetTimeInSeconds(clock_p clock);
+
 /* === End of conditional blocks =================================================================================== */
 
 #ifdef __cplusplus

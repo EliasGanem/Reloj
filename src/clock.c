@@ -288,4 +288,9 @@ void ClockTurnOffAlarm(clock_p self) {
     self->alarm_is_ringing = false;
     self->alarm_driver->TurnOffAlarm(self);
 }
+
+uint32_t ClockGetTimeInSeconds(clock_p self) {
+    return self->seconds_counter;
+}
+
 /* === End of documentation ======================================================================================== */
