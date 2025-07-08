@@ -227,6 +227,8 @@ int DisplayDot(display_p self, uint8_t digit, bool on, uint16_t number_of_calls_
         } else {
             self->blinking->dots_calls[digit] = 0;
         }
+        // para que todos parpaden sincreonizados si tienen igual velocidad
+        memset(self->blinking->dots_count, 0, sizeof(self->blinking->dots_count));
     }
 
     return result;
