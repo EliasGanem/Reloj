@@ -57,7 +57,7 @@
 
 //! Representa los estados en lo que puede estar el reloj
 typedef enum {
-    show_time,
+    valid_time,
     invalid_time,
     adjust_time_hours,
     adjust_time_minutes,
@@ -126,9 +126,17 @@ static void IncrementControl(uint8_t * array, uint8_t * array_limits, int size);
  */
 static void DecrementControl(uint8_t * array, uint8_t * array_limits, int size);
 
+/**
+ * @brief Funcion para evitar codigo repetido. Si se aprieta el boton cancelar en el ajuste de hora o alarma este hace
+ * el cambio de estado correspondiente
+ *
+ * @param clock
+ */
+static void CanceledAdjust(shield_p shield, clock_p clock);
 /* === Public variable definitions ============================================================= */
 
-static clock_time_u aux_time;
+static clock_time_u new_time;
+static states_e current_state = invalid_time;
 
 /* === Private variable definitions ============================================================ */
 
@@ -156,27 +164,32 @@ static void ConfigureSystick(void) {
 static void ChangeState(shield_p shield, states_e next_state) {
     switch (next_state) {
     case invalid_time:
+        current_state = invalid_time;
         DigitalOutputDeactivate(led_1);
         DigitalOutputDeactivate(led_2);
         DigitalOutputDeactivate(led_3);
         DigitalOutputActivate(led_b);
-
         DisplayBlinkingDigits(shield->display, 0, 3, 50);
         DisplayDot(shield->display, 2, true, 50);
         break;
 
-    case show_time:
+    case valid_time:
+        current_state = valid_time;
         DigitalOutputActivate(led_1);
         DigitalOutputDeactivate(led_2);
         DigitalOutputDeactivate(led_3);
+        DisplayBlinkingDigits(shield->display, 0, 3, 0);
+        DisplayDot(shield->display, 2, true, 500);
         break;
 
     case adjust_time_minutes:
+        current_state = adjust_time_minutes;
         DisplayBlinkingDigits(shield->display, 0, 1, 50);
         DisplayDot(shield->display, 2, true, 0);
         break;
 
     case adjust_time_hours:
+        current_state = adjust_time_hours;
         DisplayBlinkingDigits(shield->display, 2, 3, 50);
         break;
 
@@ -236,6 +249,10 @@ static void IncrementControl(uint8_t * array, uint8_t * array_limits, int size) 
                 i = size;
             }
         }
+    } else {
+        for (int i = 0; i < size; i++) {
+            array[i] = 0;
+        }
     }
 }
 
@@ -258,15 +275,26 @@ static void DecrementControl(uint8_t * array, uint8_t * array_limits, int size) 
                 i = size;
             }
         }
+    } else {
+        for (int i = 0; i < size; i++) {
+            array[i] = array_limits[i];
+        }
     }
 }
 
+static void CanceledAdjust(shield_p shield, clock_p clock) {
+    if (ClockGetTime(clock, &new_time)) {
+        ChangeState(shield, valid_time);
+    } else {
+        ChangeState(shield, invalid_time);
+    }
+}
 /* === Public function implementation ========================================================= */
 
 int main(void) {
-    states_e current_state = invalid_time;
 
     uint32_t aux_1s = 0;
+    uint32_t aux_30s = 0;
     uint32_t aux_1ms = 0;
     uint32_t aux_10ms = 0;
 
@@ -312,7 +340,7 @@ int main(void) {
             aux_1ms = milliseconds;
             DisplayRefresh(shield->display);
 
-            if (current_state == show_time || current_state == invalid_time) {
+            if (current_state == valid_time || current_state == invalid_time) {
                 ClockGetTime(clock, &current_time);
                 DisplayWriteBCD(shield->display, &current_time.bcd[2], sizeof(current_time.bcd)); //&current_time.bcd[2]
             }
@@ -324,40 +352,71 @@ int main(void) {
             switch (current_state) {
             case invalid_time:
                 if (KeepedHoldButton(set_time)) {
-                    current_state = adjust_time_minutes;
-                    ChangeState(shield, current_state);
-                    ClockGetTime(clock, &aux_time);
+                    ChangeState(shield, adjust_time_minutes);
+                    ClockGetTime(clock, &new_time);
                 }
                 break;
-            case show_time:
+            case valid_time:
                 if (KeepedHoldButton(set_time)) {
-                    current_state = adjust_time_hours;
+                    ChangeState(shield, adjust_time_minutes);
                 }
                 if (KeepedHoldButton(set_alarm)) {
-                    current_state = adjust_alarm;
+                    ChangeState(shield, adjust_alarm);
                 }
-                ChangeState(shield, current_state);
                 break;
 
             case adjust_time_minutes:
                 if (DigitalInputWasActivated(shield->incremet)) {
-                    IncrementControl(&aux_time.bcd[2], minutes_limit, 2);
+                    IncrementControl(&new_time.bcd[2], minutes_limit, 2);
+                    aux_30s = 0;
                 } else if (DigitalInputWasActivated(shield->decrement)) {
-                    DecrementControl(&aux_time.bcd[2], minutes_limit, 2);
-                } else if (DigitalInputGetIsActive(shield->accept)) {
-                    current_state = adjust_time_hours;
-                    ChangeState(shield, current_state);
+                    DecrementControl(&new_time.bcd[2], minutes_limit, 2);
+                    aux_30s = 0;
+                } else if (DigitalInputWasActivated(shield->accept)) {
+                    ChangeState(shield, adjust_time_hours);
+                    aux_30s = 0;
+                } else if (DigitalInputWasActivated(shield->cancel)) {
+                    CanceledAdjust(shield, clock);
+                    aux_30s = 0;
                 }
 
-                DisplayWriteBCD(shield->display, &aux_time.bcd[2], sizeof(aux_time.bcd));
+                DisplayWriteBCD(shield->display, &new_time.bcd[2], sizeof(new_time.bcd));
+                aux_30s++;
+                if (aux_30s == 3000) {
+                    CanceledAdjust(shield, clock);
+                    aux_30s = 0;
+                }
                 break;
 
             case adjust_time_hours:
-
+                if (DigitalInputWasActivated(shield->incremet)) {
+                    IncrementControl(&new_time.bcd[4], hours_limit, 2);
+                    aux_30s = 0;
+                } else if (DigitalInputWasActivated(shield->decrement)) {
+                    DecrementControl(&new_time.bcd[4], hours_limit, 2);
+                    aux_30s = 0;
+                } else if (DigitalInputWasActivated(shield->cancel)) {
+                    CanceledAdjust(shield, clock);
+                    aux_30s = 0;
+                } else if (DigitalInputWasActivated(shield->accept)) {
+                    if (ClockSetTime(clock, &new_time)) {
+                        ChangeState(shield, valid_time);
+                    } else {
+                        ChangeState(shield, invalid_time);
+                    }
+                    aux_30s = 0;
+                }
+                DisplayWriteBCD(shield->display, &new_time.bcd[2], sizeof(new_time.bcd));
+                aux_30s++;
+                if (aux_30s == 3000) {
+                    CanceledAdjust(shield, clock);
+                    aux_30s = 0;
+                }
                 break;
+
             case adjust_alarm:
                 if (DigitalInputGetIsActive(shield->accept) || DigitalInputGetIsActive(shield->cancel)) {
-                    current_state = show_time;
+                    current_state = valid_time;
                 }
                 ChangeState(shield, current_state);
                 break;
