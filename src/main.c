@@ -58,9 +58,9 @@
 //! Representa los estados en lo que puede estar el reloj
 typedef enum {
     show_time,
+    invalid_time,
     adjust_time,
     adjust_alarm,
-    invalid_time,
 } states_e;
 
 //! Struct que contiene los parametros de la funcion @ref CheckButtonHoldTime
@@ -153,7 +153,7 @@ void TurnOffAlarm(clock_p clock) {
 /* === Public function implementation ========================================================= */
 
 int main(void) {
-    states_e current_state = show_time;
+    states_e current_state = invalid_time;
 
     uint32_t aux_1s = 0;
     uint32_t aux_1ms = 0;
@@ -192,18 +192,19 @@ int main(void) {
 
     ConfigureSystick();
 
-    DisplayBlinkingDigits(shield->display, 0, 3, 100); // La 1ra vez que enciende Parpadea
-    DisplayDot(shield->display, 2, true, 100);
+    DisplayBlinkingDigits(shield->display, 0, 3, 50); // La 1ra vez que enciende Parpadea
+    DisplayDot(shield->display, 2, true, 50);
 
     //  Al inicio veo cuanto tiempo pasó y al final hago lo que corresponde al estado
     while (1) {
-        if (milliseconds == 86400000) {
-            milliseconds = milliseconds - aux_1s; // para mantener el 1[s] que es mas importante que el 1[ms]
-        }
-
         if ((milliseconds - aux_1ms) == 1) {
             aux_1ms = milliseconds;
             DisplayRefresh(shield->display);
+
+            if (current_state == show_time || current_state == invalid_time) {
+                ClockGetTime(clock, &current_time);
+                DisplayWriteBCD(shield->display, current_time.bcd, sizeof(current_time.bcd)); //&current_time.bcd[2]
+            }
         }
 
         if ((milliseconds - aux_10ms) == 10) {
@@ -211,9 +212,8 @@ int main(void) {
 
             switch (current_state) {
             case invalid_time:
-                if (ClockGetTime(clock, &current_time)) { // ver si cambiar esta funcion para poder enviarle NULL
-                    current_state = show_time;
-                    DisplayBlinkingDigits(shield->display, 0, 2, 300);
+                if (KeepedHoldButton(set_time)) {
+                    current_state = adjust_time;
                 }
                 break;
             case show_time:
@@ -227,7 +227,11 @@ int main(void) {
                 break;
             case adjust_time:
                 if (DigitalInputGetIsActive(shield->accept) || DigitalInputGetIsActive(shield->cancel)) {
-                    current_state = show_time;
+                    if (ClockGetTime(clock, &current_time)) {
+                        current_state = show_time;
+                    } else {
+                        current_state = invalid_time;
+                    }
                 }
 
                 break;
@@ -253,30 +257,26 @@ int main(void) {
             DigitalOutputDeactivate(led_2);
             DigitalOutputDeactivate(led_3);
             DigitalOutputActivate(led_b);
-
-            ClockGetTime(clock, &current_time);
-            DisplayWriteBCD(shield->display, current_time.bcd, sizeof(current_time.bcd));
             break;
-        case show_time:
 
+        case show_time:
             DigitalOutputActivate(led_1);
             DigitalOutputDeactivate(led_2);
             DigitalOutputDeactivate(led_3);
-
-            ClockGetTime(clock, &current_time);
-            DisplayWriteBCD(shield->display, current_time.bcd, sizeof(current_time.bcd));
-
             break;
+
         case adjust_time:
             DigitalOutputActivate(led_2);
             DigitalOutputDeactivate(led_1);
             DigitalOutputDeactivate(led_3);
             break;
+
         case adjust_alarm:
             DigitalOutputActivate(led_3);
             DigitalOutputDeactivate(led_1);
             DigitalOutputDeactivate(led_2);
             break;
+
         default:
             DigitalOutputDeactivate(led_1);
             DigitalOutputDeactivate(led_2);
