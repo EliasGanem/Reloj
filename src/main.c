@@ -59,7 +59,8 @@
 typedef enum {
     show_time,
     invalid_time,
-    adjust_time,
+    adjust_time_hours,
+    adjust_time_minutes,
     adjust_alarm,
 } states_e;
 
@@ -81,13 +82,12 @@ static void ConfigureSystick(void);
  *
  * Se encarga de verificar si el estado siguiente se valido
  *
- * @param current_state
  * @param next_state
  * @return retorna el estado siguiente de la MEF, si el cambio de estado es posible.
  * Si el cambio es invalido devuelve el mismo estado en el que esta
  *
  */
-// static states_e ChangeState(states_e current_state, states_e next_state);
+static void ChangeState(shield_p ShieldCreate, states_e next_state);
 
 /**
  * @brief Funcion para mejorar legibilidad de main
@@ -102,7 +102,33 @@ static bool KeepedHoldButton(check_button_hold_p check_values);
 void TurnOnAlarm(clock_p clock);  // No deberia ser publica?
 void TurnOffAlarm(clock_p clock); // No deberia ser publica?
 
+/**
+ * @brief Funcion para incrementar los digitos de un númeroo en formato array cada vez que es llamada y realiza el
+ * control de si se alcanzó el limite establecido.
+ *
+ * El el LS digit es el 0 y el MS digit es el tamaño del array-1.
+ *
+ * @param array array a modificarl
+ * @param limits_array array con los limites maximos del número
+ * @param size tamaño de los array
+ */
+static void IncrementControl(uint8_t * array, uint8_t * array_limits, int size);
+
+/**
+ * @brief Funcion para decrementar los digitos de un númeroo en formato array cada vez que es llamada y realiza el
+ * control de si se alcanzó el limite establecido.
+ *
+ * El el LS digit es el 0 y el MS digit es el tamaño del array-1.
+ *
+ * @param array array a modificarl
+ * @param limits_array array con los limites maximos del número
+ * @param size tamaño de los array
+ */
+static void DecrementControl(uint8_t * array, uint8_t * array_limits, int size);
+
 /* === Public variable definitions ============================================================= */
+
+static clock_time_u aux_time;
 
 /* === Private variable definitions ============================================================ */
 
@@ -125,6 +151,47 @@ static void ConfigureSystick(void) {
     SysTick_Config((SystemCoreClock / 1000) - 1);
 
     // NVIC_SetPriority(SysTick_IRQn, (1 << __NVIC_PRIO_BITS) - 1);
+}
+
+static void ChangeState(shield_p shield, states_e next_state) {
+    switch (next_state) {
+    case invalid_time:
+        DigitalOutputDeactivate(led_1);
+        DigitalOutputDeactivate(led_2);
+        DigitalOutputDeactivate(led_3);
+        DigitalOutputActivate(led_b);
+
+        DisplayBlinkingDigits(shield->display, 0, 3, 50);
+        DisplayDot(shield->display, 2, true, 50);
+        break;
+
+    case show_time:
+        DigitalOutputActivate(led_1);
+        DigitalOutputDeactivate(led_2);
+        DigitalOutputDeactivate(led_3);
+        break;
+
+    case adjust_time_minutes:
+        DisplayBlinkingDigits(shield->display, 0, 1, 50);
+        DisplayDot(shield->display, 2, true, 0);
+        break;
+
+    case adjust_time_hours:
+        DisplayBlinkingDigits(shield->display, 2, 3, 50);
+        break;
+
+    case adjust_alarm:
+        DigitalOutputActivate(led_3);
+        DigitalOutputDeactivate(led_1);
+        DigitalOutputDeactivate(led_2);
+        break;
+
+    default:
+        DigitalOutputDeactivate(led_1);
+        DigitalOutputDeactivate(led_2);
+        DigitalOutputDeactivate(led_3);
+        break;
+    }
 }
 
 static bool KeepedHoldButton(check_button_hold_p check_values) {
@@ -150,6 +217,50 @@ void TurnOffAlarm(clock_p clock) {
     (void)clock;
 }
 
+static void IncrementControl(uint8_t * array, uint8_t * array_limits, int size) {
+    bool increment = false;
+
+    for (int i = 0; i < size; i++) {
+        if (array[i] != array_limits[i]) {
+            increment = true;
+        }
+    }
+
+    if (increment) {
+        for (int i = 0; i < size; i++) {
+            if (array[i] < 9) {
+                array[i]++;
+                for (int j = 0; j < i; j++) {
+                    array[j] = 0;
+                }
+                i = size;
+            }
+        }
+    }
+}
+
+static void DecrementControl(uint8_t * array, uint8_t * array_limits, int size) {
+    bool decrement = false;
+
+    for (int i = 0; i < size; i++) {
+        if (array[i] != 0) {
+            decrement = true;
+        }
+    }
+
+    if (decrement) {
+        for (int i = 0; i < size; i++) {
+            if (array[i] > 0) {
+                array[i]--;
+                for (int j = 0; j < i; j++) {
+                    array[j] = 9;
+                }
+                i = size;
+            }
+        }
+    }
+}
+
 /* === Public function implementation ========================================================= */
 
 int main(void) {
@@ -158,6 +269,9 @@ int main(void) {
     uint32_t aux_1s = 0;
     uint32_t aux_1ms = 0;
     uint32_t aux_10ms = 0;
+
+    uint8_t minutes_limit[2] = {0, 6};
+    uint8_t hours_limit[2] = {4, 2};
 
     shield_p shield = ShieldCreate();
 
@@ -191,11 +305,8 @@ int main(void) {
     clock_time_u current_time;
 
     ConfigureSystick();
+    ChangeState(shield, invalid_time);
 
-    DisplayBlinkingDigits(shield->display, 0, 3, 50); // La 1ra vez que enciende Parpadea
-    DisplayDot(shield->display, 2, true, 50);
-
-    //  Al inicio veo cuanto tiempo pasó y al final hago lo que corresponde al estado
     while (1) {
         if ((milliseconds - aux_1ms) == 1) {
             aux_1ms = milliseconds;
@@ -203,7 +314,7 @@ int main(void) {
 
             if (current_state == show_time || current_state == invalid_time) {
                 ClockGetTime(clock, &current_time);
-                DisplayWriteBCD(shield->display, current_time.bcd, sizeof(current_time.bcd)); //&current_time.bcd[2]
+                DisplayWriteBCD(shield->display, &current_time.bcd[2], sizeof(current_time.bcd)); //&current_time.bcd[2]
             }
         }
 
@@ -213,33 +324,42 @@ int main(void) {
             switch (current_state) {
             case invalid_time:
                 if (KeepedHoldButton(set_time)) {
-                    current_state = adjust_time;
+                    current_state = adjust_time_minutes;
+                    ChangeState(shield, current_state);
+                    ClockGetTime(clock, &aux_time);
                 }
                 break;
             case show_time:
                 if (KeepedHoldButton(set_time)) {
-                    current_state = adjust_time;
+                    current_state = adjust_time_hours;
                 }
                 if (KeepedHoldButton(set_alarm)) {
                     current_state = adjust_alarm;
                 }
-
+                ChangeState(shield, current_state);
                 break;
-            case adjust_time:
-                if (DigitalInputGetIsActive(shield->accept) || DigitalInputGetIsActive(shield->cancel)) {
-                    if (ClockGetTime(clock, &current_time)) {
-                        current_state = show_time;
-                    } else {
-                        current_state = invalid_time;
-                    }
+
+            case adjust_time_minutes:
+                if (DigitalInputWasActivated(shield->incremet)) {
+                    IncrementControl(&aux_time.bcd[2], minutes_limit, 2);
+                } else if (DigitalInputWasActivated(shield->decrement)) {
+                    DecrementControl(&aux_time.bcd[2], minutes_limit, 2);
+                } else if (DigitalInputGetIsActive(shield->accept)) {
+                    current_state = adjust_time_hours;
+                    ChangeState(shield, current_state);
                 }
+
+                DisplayWriteBCD(shield->display, &aux_time.bcd[2], sizeof(aux_time.bcd));
+                break;
+
+            case adjust_time_hours:
 
                 break;
             case adjust_alarm:
                 if (DigitalInputGetIsActive(shield->accept) || DigitalInputGetIsActive(shield->cancel)) {
                     current_state = show_time;
                 }
-
+                ChangeState(shield, current_state);
                 break;
 
             default:
@@ -249,39 +369,6 @@ int main(void) {
 
         if ((milliseconds - aux_1s) == 1000) {
             aux_1s = milliseconds;
-        }
-
-        switch (current_state) {
-        case invalid_time:
-            DigitalOutputDeactivate(led_1);
-            DigitalOutputDeactivate(led_2);
-            DigitalOutputDeactivate(led_3);
-            DigitalOutputActivate(led_b);
-            break;
-
-        case show_time:
-            DigitalOutputActivate(led_1);
-            DigitalOutputDeactivate(led_2);
-            DigitalOutputDeactivate(led_3);
-            break;
-
-        case adjust_time:
-            DigitalOutputActivate(led_2);
-            DigitalOutputDeactivate(led_1);
-            DigitalOutputDeactivate(led_3);
-            break;
-
-        case adjust_alarm:
-            DigitalOutputActivate(led_3);
-            DigitalOutputDeactivate(led_1);
-            DigitalOutputDeactivate(led_2);
-            break;
-
-        default:
-            DigitalOutputDeactivate(led_1);
-            DigitalOutputDeactivate(led_2);
-            DigitalOutputDeactivate(led_3);
-            break;
         }
     }
 }
