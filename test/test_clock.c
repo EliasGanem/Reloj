@@ -497,4 +497,9 @@ void test_snooze_time_equal_8600_seconds() {
     TEST_ASSERT_TRUE(alarm_is_ringing);
 }
 
+// 31-Probar que devuelve la hora en segundos
+void test_we_can_obtain_time_in_seconds() {
+    SimulateSeconds(clock, 1800); // pasaron 30 minutos
+    TEST_ASSERT_EQUAL_UINT32(1800, ClockGetTimeInSeconds(clock));
+}
 /* === End of documentation ======================================================================================== */

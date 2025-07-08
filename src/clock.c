@@ -43,7 +43,7 @@ struct clock_s {
     uint32_t seconds_counter;          //!< cantidad de segundos desde las 00:00:00
     uint32_t seconds_snoozed;          //!< cantidad de segundos que se pospone la alarma
     uint16_t ticks_per_second;         //!< cantidad de llamadas a @ref ClockNewTick que equivalen a un segundo
-    uint8_t ticks_counter;             //!< canntidad de veces que se llamó a @ref ClockNewTick
+    uint16_t ticks_counter;            //!< canntidad de veces que se llamó a @ref ClockNewTick
     clock_alarm_driver_p alarm_driver; //! punteros a función para controlar la alarma
 };
 
@@ -175,11 +175,16 @@ clock_p ClockCreate(uint16_t ticks_per_second, clock_alarm_driver_p alarm_driver
 }
 
 int ClockGetTime(clock_p self, clock_time_u * result) {
+    int aux = 0;
 
     SecondsToTime(self->seconds_counter, self->current_time.bcd);
     memcpy(result, &self->current_time, sizeof(clock_time_u));
 
-    return self->valid;
+    if (self->valid) {
+        aux = 1;
+    }
+
+    return aux;
 }
 
 int ClockSetTime(clock_p self, const clock_time_u * new_time) {
@@ -283,4 +288,9 @@ void ClockTurnOffAlarm(clock_p self) {
     self->alarm_is_ringing = false;
     self->alarm_driver->TurnOffAlarm(self);
 }
+
+uint32_t ClockGetTimeInSeconds(clock_p self) {
+    return self->seconds_counter;
+}
+
 /* === End of documentation ======================================================================================== */

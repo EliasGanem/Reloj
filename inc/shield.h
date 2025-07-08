@@ -61,6 +61,7 @@ typedef struct shield_s {
 /* === Public variable declarations ================================================================================ */
 
 /* === Public function declarations ================================================================================ */
+
 /**
  * @brief Función para crear un pocnho
  *
