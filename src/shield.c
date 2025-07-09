@@ -153,8 +153,8 @@ static void InputInit(struct shield_s * self) {
 }
 
 static void OutputInit(struct shield_s * self) {
-    Chip_SCU_PinMuxSet(BUZZER_PORT, BUZZER_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | BUZZER_FUNC);
-    self->buzzer = DigitalOutputCreate(BUZZER_GPIO, BUZZER_BIT);
+    Chip_SCU_PinMuxSet(RGB_RED_PORT, RGB_RED_PIN, SCU_MODE_INBUFF_EN | SCU_MODE_INACT | RGB_RED_FUNC);
+    self->buzzer = DigitalOutputCreate(RGB_RED_GPIO, RGB_RED_BIT);
 }
 
 static void DigitisInit(void) {

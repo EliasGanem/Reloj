@@ -146,6 +146,7 @@ static bool Passed30s(void);
 
 /* === Public variable definitions ============================================================= */
 
+static struct shield_s * shield;
 static clock_time_u new_time;
 static states_e current_state = invalid_time;
 
@@ -157,12 +158,6 @@ static clock_p clock;
 //! Contador de milisegundos, para tener un control de tiempo en main
 static volatile uint32_t milliseconds = 0;
 static uint32_t aux_30s = 0;
-
-//! Led para probar que anda el SysTick
-static digital_output_p led_1;
-static digital_output_p led_2;
-static digital_output_p led_3;
-static digital_output_p led_b;
 
 /* === Private function implementation ========================================================= */
 
@@ -252,16 +247,11 @@ static bool KeepedHoldButton(check_button_hold_p check_values) {
 }
 
 void TurnOnAlarm(void) {
-    (void)clock;
-    DigitalOutputActivate(led_1);
-    DigitalOutputActivate(led_2);
-    DigitalOutputActivate(led_3);
+    DigitalOutputDeactivate(shield->buzzer); // Es activo en bajo
 }
 
 void TurnOffAlarm(void) {
-    DigitalOutputDeactivate(led_1);
-    DigitalOutputDeactivate(led_2);
-    DigitalOutputDeactivate(led_3);
+    DigitalOutputActivate(shield->buzzer);
 }
 
 static void IncrementControl(uint8_t * array, uint8_t * array_limits, int size) {
@@ -343,14 +333,14 @@ static bool Passed30s(void) {
 
 int main(void) {
 
-    uint32_t aux_1s = 0;
-    uint32_t aux_1ms = 0;
     uint32_t aux_15ms = 0;
+    uint32_t aux_1s = 0;
 
     uint8_t minutes_limit[2] = {0, 6};
     uint8_t hours_limit[2] = {4, 2};
 
-    shield_p shield = ShieldCreate();
+    shield = ShieldCreate();
+    DigitalOutputActivate(shield->buzzer);
 
     // preguntar: no lo puedo hacer static xq un argumento se crea en t de ejecucion
     volatile check_button_hold_p set_time = &(struct check_button_hold_s){
@@ -364,36 +354,17 @@ int main(void) {
         .time_to_hold = TIME_TO_HOLD_TO_CHANGE_STATE_MS,
     };
 
-    led_1 = DigitalOutputCreate(LED_1_GPIO, LED_1_BIT);
-    led_2 = DigitalOutputCreate(LED_2_GPIO, LED_2_BIT);
-    led_3 = DigitalOutputCreate(LED_3_GPIO, LED_3_BIT);
-    led_b = DigitalOutputCreate(LED_B_GPIO, LED_B_BIT);
-    DigitalOutputDeactivate(led_1);
-    DigitalOutputDeactivate(led_2);
-    DigitalOutputDeactivate(led_3);
-    DigitalOutputDeactivate(led_b);
-
     clock_alarm_driver_p alarm_driver = &(struct clock_alarm_driver_s){
         .TurnOnAlarm = TurnOnAlarm,
         .TurnOffAlarm = TurnOffAlarm,
     };
 
     clock = ClockCreate(1000, alarm_driver, 300);
-    clock_time_u current_time;
 
     ConfigureSystick();
     ChangeState(shield, invalid_time);
 
     while (1) {
-        if ((milliseconds - aux_1ms) == 1) {
-            aux_1ms = milliseconds;
-            DisplayRefresh(shield->display);
-
-            if (current_state == valid_time || current_state == invalid_time) {
-                ClockGetTime(clock, &current_time);
-                DisplayWriteBCD(shield->display, &current_time.bcd[2], sizeof(current_time.bcd)); //&current_time.bcd[2]
-            }
-        }
 
         if ((milliseconds - aux_15ms) == 15) {
             aux_15ms = milliseconds;
@@ -525,8 +496,17 @@ int main(void) {
 }
 
 void SysTick_Handler(void) {
+    clock_time_u current_time;
+
     ClockNewTick(clock);
     milliseconds++;
+
+    DisplayRefresh(shield->display);
+
+    if (current_state == valid_time || current_state == invalid_time) {
+        ClockGetTime(clock, &current_time);
+        DisplayWriteBCD(shield->display, &current_time.bcd[2], sizeof(current_time.bcd)); //&current_time.bcd[2]
+    }
 }
 
 /* === End of documentation ==================================================================== */
