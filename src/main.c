@@ -65,7 +65,7 @@ typedef enum {
     adjust_alarm_minutes,
 } states_e;
 
-//! Struct que contiene los parametros de la funcion @ref CheckButtonHoldTime
+//! Struct que contiene los parametros de la funcion KeepedHoldButton(check_button_hold_p)
 typedef struct check_button_hold_s {
     const digital_input_p button; //!< botón
     uint32_t counter;             //!< contador propio del boton
@@ -100,8 +100,17 @@ static void ChangeState(shield_p ShieldCreate, states_e next_state);
  */
 static bool KeepedHoldButton(check_button_hold_p check_values);
 
-void TurnOnAlarm(void);  // No deberia ser publica?
-void TurnOffAlarm(void); // No deberia ser publica?
+/**
+ * @brief Funcion perteneciente a la Interface utilizada por el reloj, esta se encarga de prender la alarma
+ *
+ */
+void TurnOnAlarm(void);
+
+/**
+ * @brief Funcion perteneciente a la Interface utilizada por el reloj, esta se encarga de apagar la alarma
+ *
+ */
+void TurnOffAlarm(void);
 
 /**
  * @brief Funcion para incrementar los digitos de un númeroo en formato array cada vez que es llamada y realiza el
@@ -146,17 +155,24 @@ static bool Passed30s(void);
 
 /* === Public variable definitions ============================================================= */
 
-static struct shield_s * shield;
-static clock_time_u new_time;
-static states_e current_state = invalid_time;
-
 /* === Private variable definitions ============================================================ */
+
+//! Referencia al poncho
+static struct shield_s * shield;
+
+//! Variable Auxiliar utilizada para guardar la hora que se elige al configurar la alarma o la hora
+static clock_time_u new_time;
+
+//! Variable que tiene el estado actual del reloj
+static states_e current_state = invalid_time;
 
 //! Referencia al objeto reloj
 static clock_p clock;
 
 //! Contador de milisegundos, para tener un control de tiempo en main
 static volatile uint32_t milliseconds = 0;
+
+//! Varaible para saber cuando pasaron 30 segundos sin apretar un botón
 static uint32_t aux_30s = 0;
 
 /* === Private function implementation ========================================================= */
