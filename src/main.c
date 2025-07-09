@@ -100,8 +100,8 @@ static void ChangeState(shield_p ShieldCreate, states_e next_state);
  */
 static bool KeepedHoldButton(check_button_hold_p check_values);
 
-void TurnOnAlarm(clock_p clock);  // No deberia ser publica?
-void TurnOffAlarm(clock_p clock); // No deberia ser publica?
+void TurnOnAlarm(void);  // No deberia ser publica?
+void TurnOffAlarm(void); // No deberia ser publica?
 
 /**
  * @brief Funcion para incrementar los digitos de un númeroo en formato array cada vez que es llamada y realiza el
@@ -240,14 +240,14 @@ static bool KeepedHoldButton(check_button_hold_p check_values) {
     return result;
 }
 
-void TurnOnAlarm(clock_p clock) {
+void TurnOnAlarm(void) {
     (void)clock;
     DigitalOutputActivate(led_1);
     DigitalOutputActivate(led_2);
     DigitalOutputActivate(led_3);
 }
 
-void TurnOffAlarm(clock_p clock) {
+void TurnOffAlarm(void) {
     DigitalOutputDeactivate(led_1);
     DigitalOutputDeactivate(led_2);
     DigitalOutputDeactivate(led_3);
@@ -319,7 +319,7 @@ int main(void) {
     uint32_t aux_1s = 0;
     uint32_t aux_30s = 0;
     uint32_t aux_1ms = 0;
-    uint32_t aux_10ms = 0;
+    uint32_t aux_15ms = 0;
 
     uint8_t minutes_limit[2] = {0, 6};
     uint8_t hours_limit[2] = {4, 2};
@@ -369,8 +369,8 @@ int main(void) {
             }
         }
 
-        if ((milliseconds - aux_10ms) == 10) {
-            aux_10ms = milliseconds;
+        if ((milliseconds - aux_15ms) == 15) {
+            aux_15ms = milliseconds;
 
             switch (current_state) {
             case invalid_time:
@@ -398,12 +398,14 @@ int main(void) {
                     }
                     ChangeState(shield, valid_time); // para activar el punto del 1er digito
                 } else if (ClockGetAlarm(clock, &new_time)) {
-                    if (DigitalInputWasActivated(shield->accept)) {
-                        ClockSetAlarmState(clock, true);
-                        ChangeState(shield, valid_time);
-                    } else if (DigitalInputWasActivated(shield->cancel)) {
-                        ClockSetAlarmState(clock, false);
-                        ChangeState(shield, valid_time);
+                    if (!ClockIsAlarmSnoozed(clock)) {
+                        if (DigitalInputWasActivated(shield->accept)) {
+                            ClockSetAlarmState(clock, true);
+                            ChangeState(shield, valid_time);
+                        } else if (DigitalInputWasActivated(shield->cancel)) {
+                            ClockSetAlarmState(clock, false);
+                            ChangeState(shield, valid_time);
+                        }
                     }
                 }
 
