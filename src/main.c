@@ -135,6 +135,15 @@ static void DecrementControl(uint8_t * array, uint8_t * array_limits, int size);
  */
 static void CanceledAdjustTime(shield_p shield, clock_p clock);
 
+/**
+ * @brief Funcion para evitar codigo repetido, se encarga de sumar 1 al contador de 30 segundos y ver si ya pasaron 30s
+ *
+ * @return retorna:
+ *  \li 1 si pasaron 30s
+ *  \li 0 si no pasaron
+ */
+static bool Passed30s(void);
+
 /* === Public variable definitions ============================================================= */
 
 static clock_time_u new_time;
@@ -147,6 +156,7 @@ static clock_p clock;
 
 //! Contador de milisegundos, para tener un control de tiempo en main
 static volatile uint32_t milliseconds = 0;
+static uint32_t aux_30s = 0;
 
 //! Led para probar que anda el SysTick
 static digital_output_p led_1;
@@ -164,6 +174,7 @@ static void ConfigureSystick(void) {
 }
 
 static void ChangeState(shield_p shield, states_e next_state) {
+    aux_30s = 0;
     switch (next_state) {
     case invalid_time:
         current_state = invalid_time;
@@ -256,6 +267,8 @@ void TurnOffAlarm(void) {
 static void IncrementControl(uint8_t * array, uint8_t * array_limits, int size) {
     bool increment = false;
 
+    aux_30s = 0;
+
     for (int i = 0; i < size; i++) {
         if (array[i] != array_limits[i]) {
             increment = true;
@@ -281,6 +294,8 @@ static void IncrementControl(uint8_t * array, uint8_t * array_limits, int size) 
 
 static void DecrementControl(uint8_t * array, uint8_t * array_limits, int size) {
     bool decrement = false;
+
+    aux_30s = 0;
 
     for (int i = 0; i < size; i++) {
         if (array[i] != 0) {
@@ -311,13 +326,24 @@ static void CanceledAdjustTime(shield_p shield, clock_p clock) {
     } else {
         ChangeState(shield, invalid_time);
     }
+    aux_30s = 0;
+}
+
+static bool Passed30s(void) {
+    bool result = false;
+
+    aux_30s++;
+    if (aux_30s == 3000) {
+        result = true;
+    }
+
+    return result;
 }
 /* === Public function implementation ========================================================= */
 
 int main(void) {
 
     uint32_t aux_1s = 0;
-    uint32_t aux_30s = 0;
     uint32_t aux_1ms = 0;
     uint32_t aux_15ms = 0;
 
@@ -352,7 +378,7 @@ int main(void) {
         .TurnOffAlarm = TurnOffAlarm,
     };
 
-    clock = ClockCreate(1000, alarm_driver, 60);
+    clock = ClockCreate(1000, alarm_driver, 300);
     clock_time_u current_time;
 
     ConfigureSystick();
@@ -386,8 +412,8 @@ int main(void) {
                 } else if (KeepedHoldButton(set_alarm)) {
                     ChangeState(shield, adjust_alarm_minutes);
                     ClockGetAlarm(clock, &new_time);
-                    new_time.bcd[0] = 0; // Para que los segudnos no afecten la alarma
-                    new_time.bcd[1] = 0; // Para que los segudnos no afecten la alarma
+                    new_time.bcd[0] = 0; // Para que los segundos no afecten la alarma
+                    new_time.bcd[1] = 0; // Para que los segundos no afecten la alarma
                 } else if (ClockIsAlarmRinging(clock)) {
                     if (DigitalInputWasActivated(shield->cancel)) {
                         ClockTurnOffAlarm(clock);
@@ -414,36 +440,28 @@ int main(void) {
             case adjust_time_minutes:
                 if (DigitalInputWasActivated(shield->incremet)) {
                     IncrementControl(&new_time.bcd[2], minutes_limit, 2);
-                    aux_30s = 0;
                 } else if (DigitalInputWasActivated(shield->decrement)) {
                     DecrementControl(&new_time.bcd[2], minutes_limit, 2);
-                    aux_30s = 0;
                 } else if (DigitalInputWasActivated(shield->accept)) {
                     ChangeState(shield, adjust_time_hours);
-                    aux_30s = 0;
                 } else if (DigitalInputWasActivated(shield->cancel)) {
                     CanceledAdjustTime(shield, clock);
-                    aux_30s = 0;
                 }
 
                 DisplayWriteBCD(shield->display, &new_time.bcd[2], sizeof(new_time.bcd));
-                aux_30s++;
-                if (aux_30s == 3000) {
+
+                if (Passed30s()) {
                     CanceledAdjustTime(shield, clock);
-                    aux_30s = 0;
                 }
                 break;
 
             case adjust_time_hours:
                 if (DigitalInputWasActivated(shield->incremet)) {
                     IncrementControl(&new_time.bcd[4], hours_limit, 2);
-                    aux_30s = 0;
                 } else if (DigitalInputWasActivated(shield->decrement)) {
                     DecrementControl(&new_time.bcd[4], hours_limit, 2);
-                    aux_30s = 0;
                 } else if (DigitalInputWasActivated(shield->cancel)) {
                     CanceledAdjustTime(shield, clock);
-                    aux_30s = 0;
                 } else if (DigitalInputWasActivated(shield->accept)) {
                     if (ClockSetTime(clock, &new_time)) {
                         ChangeState(shield, valid_time);
@@ -453,56 +471,45 @@ int main(void) {
                     aux_30s = 0;
                 }
                 DisplayWriteBCD(shield->display, &new_time.bcd[2], sizeof(new_time.bcd));
-                aux_30s++;
-                if (aux_30s == 3000) {
+
+                if (Passed30s()) {
                     CanceledAdjustTime(shield, clock);
-                    aux_30s = 0;
                 }
                 break;
 
             case adjust_alarm_minutes:
                 if (DigitalInputWasActivated(shield->incremet)) {
                     IncrementControl(&new_time.bcd[2], minutes_limit, 2);
-                    aux_30s = 0;
                 } else if (DigitalInputWasActivated(shield->decrement)) {
                     DecrementControl(&new_time.bcd[2], minutes_limit, 2);
-                    aux_30s = 0;
                 } else if (DigitalInputWasActivated(shield->accept)) {
                     ChangeState(shield, adjust_alarm_hours);
-                    aux_30s = 0;
                 } else if (DigitalInputWasActivated(shield->cancel)) {
                     ChangeState(shield, valid_time);
-                    aux_30s = 0;
                 }
 
                 DisplayWriteBCD(shield->display, &new_time.bcd[2], sizeof(new_time.bcd));
-                aux_30s++;
-                if (aux_30s == 3000) {
+
+                if (Passed30s()) {
                     ChangeState(shield, valid_time);
-                    aux_30s = 0;
                 }
                 break;
 
             case adjust_alarm_hours:
                 if (DigitalInputWasActivated(shield->incremet)) {
                     IncrementControl(&new_time.bcd[4], hours_limit, 2);
-                    aux_30s = 0;
                 } else if (DigitalInputWasActivated(shield->decrement)) {
                     DecrementControl(&new_time.bcd[4], hours_limit, 2);
-                    aux_30s = 0;
                 } else if (DigitalInputWasActivated(shield->cancel)) {
                     ChangeState(shield, valid_time);
-                    aux_30s = 0;
                 } else if (DigitalInputWasActivated(shield->accept)) {
                     ClockSetAlarm(clock, &new_time);
                     ChangeState(shield, valid_time);
-                    aux_30s = 0;
                 }
                 DisplayWriteBCD(shield->display, &new_time.bcd[2], sizeof(new_time.bcd));
-                aux_30s++;
-                if (aux_30s == 3000) {
+
+                if (Passed30s()) {
                     ChangeState(shield, valid_time);
-                    aux_30s = 0;
                 }
                 break;
 
