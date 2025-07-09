@@ -80,10 +80,10 @@ que puede darse esta condicion
 /* === Private function declarations =============================================================================== */
 
 //! Funcion para simular el encendido de la alarma
-static void TurnOnAlarm(clock_p clock);
+static void TurnOnAlarm(void);
 
 //! Funcion para simular el apagado de la alarma
-static void TurnOffAlarm(clock_p clock);
+static void TurnOffAlarm(void);
 
 /* === Private variable definitions ================================================================================ */
 
@@ -110,14 +110,12 @@ static void SimulateSeconds(clock_p clock, int seconds) {
     }
 }
 
-static void TurnOnAlarm(clock_p clock) {
+static void TurnOnAlarm(void) {
     alarm_is_ringing = true;
-    (void)clock;
 }
 
-static void TurnOffAlarm(clock_p clock) {
+static void TurnOffAlarm(void) {
     alarm_is_ringing = false;
-    (void)clock;
 }
 
 /* === Public function definitions ===+============================================================================= */
@@ -501,5 +499,19 @@ void test_snooze_time_equal_8600_seconds() {
 void test_we_can_obtain_time_in_seconds() {
     SimulateSeconds(clock, 1800); // pasaron 30 minutos
     TEST_ASSERT_EQUAL_UINT32(1800, ClockGetTimeInSeconds(clock));
+}
+
+// 32- Probar que me dice si la alarma esta pospuesta
+void test_we_can_know_that_the_alarm_is_snoozed() {
+    static const clock_time_u valid_alarm = {
+        .time = {.hours = {0, 0}, .minutes = {0, 3}, .seconds = {0, 0}},
+    };
+    ClockSetAlarm(clock, &valid_alarm); // alarma a las 00:30:00
+
+    TEST_ASSERT_EQUAL_INT(0, ClockIsAlarmSnoozed(clock));
+
+    SimulateSeconds(clock, 2100); // pasaron 35 minutos
+    ClockSnoozeAlarm(clock);
+    TEST_ASSERT_EQUAL_INT(1, ClockIsAlarmSnoozed(clock));
 }
 /* === End of documentation ======================================================================================== */

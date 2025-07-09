@@ -222,13 +222,13 @@ void ClockNewTick(clock_p self) {
         snooze_counter = 0;
         self->snooze_alarm = false;
         self->alarm_is_ringing = true;
-        self->alarm_driver->TurnOnAlarm(self);
+        self->alarm_driver->TurnOnAlarm();
     }
 
     // Activa alarma
     if ((self->seconds_counter == self->current_alarm_in_seconds) && self->alarm_is_activated) {
         self->alarm_is_ringing = true;
-        self->alarm_driver->TurnOnAlarm(self);
+        self->alarm_driver->TurnOnAlarm();
     }
 }
 
@@ -286,11 +286,18 @@ void ClockSnoozeAlarm(clock_p self) {
 
 void ClockTurnOffAlarm(clock_p self) {
     self->alarm_is_ringing = false;
-    self->alarm_driver->TurnOffAlarm(self);
+    self->alarm_driver->TurnOffAlarm();
 }
 
 uint32_t ClockGetTimeInSeconds(clock_p self) {
     return self->seconds_counter;
 }
 
+int ClockIsAlarmSnoozed(clock_p self) {
+    int result = 0;
+    if (self->snooze_alarm) {
+        result = 1;
+    }
+    return result;
+}
 /* === End of documentation ======================================================================================== */
