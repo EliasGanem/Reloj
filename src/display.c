@@ -211,7 +211,7 @@ int DisplayBlinkingDigits(display_p self, uint8_t from, uint8_t to, uint16_t num
     return result;
 }
 
-int DisplayDot(display_p self, uint8_t digit, bool on, uint16_t number_of_calls_off) {
+int DisplayDot(display_p self, uint8_t digit, bool on, uint16_t number_of_calls) {
     int result = 0;
     if (!self || digit >= self->digits) {
         result = -1;
@@ -222,11 +222,7 @@ int DisplayDot(display_p self, uint8_t digit, bool on, uint16_t number_of_calls_
             self->video_memory[digit] = (~SEGMENT_DOT_MASK) & self->video_memory[digit];
         }
 
-        if (number_of_calls_off) {
-            self->blinking->dots_calls[digit] = 2 * number_of_calls_off;
-        } else {
-            self->blinking->dots_calls[digit] = 0;
-        }
+        self->blinking->dots_calls[digit] = 2 * number_of_calls;
         // para que todos parpaden sincreonizados si tienen igual velocidad
         memset(self->blinking->dots_count, 0, sizeof(self->blinking->dots_count));
     }
