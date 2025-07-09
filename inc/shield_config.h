@@ -192,6 +192,25 @@ extern "C" {
 #define BUZZER_GPIO      5
 #define BUZZER_BIT       2
 
+// Led RGB
+#define RGB_RED_PORT     1
+#define RGB_RED_PIN      4
+#define RGB_RED_FUNC     SCU_MODE_FUNC0
+#define RGB_RED_GPIO     0
+#define RGB_RED_BIT      11
+
+#define RGB_GREEN_PORT   1
+#define RGB_GREEN_PIN    5
+#define RGB_GREEN_FUNC   SCU_MODE_FUNC0
+#define RGB_GREEN_GPIO   1
+#define RGB_GREEN_BIT    8
+
+#define RGB_BLUE_PORT    1
+#define RGB_BLUE_PIN     3
+#define RGB_BLUE_FUNC    SCU_MODE_FUNC0
+#define RGB_BLUE_GPIO    0
+#define RGB_BLUE_BIT     10
+
 /* === Public data type declarations =========================================================== */
 
 /* === Public variable declarations ============================================================ */
