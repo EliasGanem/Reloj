@@ -56,16 +56,14 @@ typedef union {
 /**
  * @brief Puntero a una función que enciende la alarma correspondiente al reloj.
  *
- * @param clock referencia al reloj del que se habla.
  */
-typedef void (*turn_on_alarm_p)(clock_p clock);
+typedef void (*turn_on_alarm_p)(void);
 
 /**
  * @brief Puntero a una función que apaga la alarma correspondiente al reloj.
  *
- * @param clock referencia al reloj del que se habla.
  */
-typedef void (*turn_off_alarm_p)(clock_p clock);
+typedef void (*turn_off_alarm_p)(void);
 
 typedef struct clock_alarm_driver_s {
     turn_off_alarm_p TurnOffAlarm;
@@ -187,6 +185,16 @@ void ClockTurnOffAlarm(clock_p clock);
  * @return uint32_t
  */
 uint32_t ClockGetTimeInSeconds(clock_p clock);
+
+/**
+ * @brief Funcion para saber si la alarma esta pospuesta
+ *
+ * @param clock referencia al objeto
+ * @return int devuelve:
+ *  \li 1 si está pospuesta
+ *  \li 0 si no está pospuesta
+ */
+int ClockIsAlarmSnoozed(clock_p clock);
 
 /* === End of conditional blocks =================================================================================== */
 
