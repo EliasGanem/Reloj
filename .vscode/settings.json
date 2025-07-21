@@ -3,6 +3,8 @@
         "limits": "c",
         "stdint.h": "c",
         "clock.h": "c",
-        "cstdint": "c"
+        "cstdint": "c",
+        "freertos.h": "c",
+        "freertosconfig.h": "c"
     }
 }

@@ -40,65 +40,36 @@
 
 /* === Headers files inclusions =============================================================== */
 
+#include "FreeRTOS.h"
+#include "task.h"
+// #include "queue.h"
+
+#include "button_task.h"
+#include "shield_config.h"
+
 #include "shield.h"
 #include "clock.h"
-#include "chip.h"
 #include <stdbool.h>
+#include <stdlib.h>
 
 #include "edusia_config.h" // solo para usar los leds
 
 /* === Macros definitions ====================================================================== */
 
-#ifndef TIME_TO_HOLD_TO_CHANGE_STATE_MS
-#define TIME_TO_HOLD_TO_CHANGE_STATE_MS 300
-#endif
+#define ACCEPT_BUTTON BUTTONS_EVENT_BUTTON_0;
+#define CANCEL_BUTTON BUTTONS_EVENT_BUTTON_1;
 
 /* === Private data type declarations ========================================================== */
 
-//! Representa los estados en lo que puede estar el reloj
-typedef enum {
-    valid_time,
-    invalid_time,
-    adjust_time_hours,
-    adjust_time_minutes,
-    adjust_alarm_hours,
-    adjust_alarm_minutes,
-} states_e;
-
-//! Struct que contiene los parametros de la funcion KeepedHoldButton(check_button_hold_p)
-typedef struct check_button_hold_s {
-    const digital_input_p button; //!< botón
-    uint32_t counter;             //!< contador propio del boton
-    const uint32_t time_to_hold;  //!< tiempo que se desea que se controle el boton.
-} * check_button_hold_p;
+typedef struct led_task_arg_s {
+    EventGroupHandle_t event_group;
+    int event_bit;
+    digital_output_p led;
+} * led_task_arg_p;
 
 /* === Private variable declarations =========================================================== */
 
 /* === Private function declarations =========================================================== */
-
-static void ConfigureSystick(void);
-
-/**
- * @brief Función para realizar el cambio de estado de la MEF del reloj
- *
- * Se encarga de verificar si el estado siguiente se valido
- *
- * @param next_state
- * @return retorna el estado siguiente de la MEF, si el cambio de estado es posible.
- * Si el cambio es invalido devuelve el mismo estado en el que esta
- *
- */
-static void ChangeState(shield_p ShieldCreate, states_e next_state);
-
-/**
- * @brief Funcion para mejorar legibilidad de main
- * Se encarga de verificar que los botones se mantienen pulsados el tiempo necesario
- * @param check_values
- * @return retorna:
- *  \li 1 si se mantuvo presionado el botón el tiempo necesario
- *  \li 0 si no se lo mantuvo presionado lo suficiente
- */
-static bool KeepedHoldButton(check_button_hold_p check_values);
 
 /**
  * @brief Funcion perteneciente a la Interface utilizada por el reloj, esta se encarga de prender la alarma
@@ -136,131 +107,13 @@ static void IncrementControl(uint8_t * array, uint8_t * array_limits, int size);
  */
 static void DecrementControl(uint8_t * array, uint8_t * array_limits, int size);
 
-/**
- * @brief Funcion para evitar codigo repetido. Si se aprieta el boton cancelar en el ajuste de hora o alarma este hace
- * el cambio de estado correspondiente
- *
- * @param clock
- */
-static void CanceledAdjustTime(shield_p shield, clock_p clock);
-
-/**
- * @brief Funcion para evitar codigo repetido, se encarga de sumar 1 al contador de 30 segundos y ver si ya pasaron 30s
- *
- * @return retorna:
- *  \li 1 si pasaron 30s
- *  \li 0 si no pasaron
- */
-static bool Passed30s(void);
-
 /* === Public variable definitions ============================================================= */
 
 /* === Private variable definitions ============================================================ */
 
-//! Referencia al poncho
-static struct shield_s * shield;
-
-//! Variable Auxiliar utilizada para guardar la hora que se elige al configurar la alarma o la hora
-static clock_time_u new_time;
-
-//! Variable que tiene el estado actual del reloj
-static states_e current_state = invalid_time;
-
-//! Referencia al objeto reloj
-static clock_p clock;
-
-//! Contador de milisegundos, para tener un control de tiempo en main
-static volatile uint32_t milliseconds = 0;
-
-//! Varaible para saber cuando pasaron 30 segundos sin apretar un botón
-static uint32_t aux_30s = 0;
+struct shield_s * shield;
 
 /* === Private function implementation ========================================================= */
-
-static void ConfigureSystick(void) {
-    SystemCoreClockUpdate();
-    SysTick_Config((SystemCoreClock / 1000) - 1);
-
-    // NVIC_SetPriority(SysTick_IRQn, (1 << __NVIC_PRIO_BITS) - 1);
-}
-
-static void ChangeState(shield_p shield, states_e next_state) {
-    aux_30s = 0;
-    switch (next_state) {
-    case invalid_time:
-        current_state = invalid_time;
-        DisplayBlinkingDigits(shield->display, 0, 3, 50);
-        DisplayDot(shield->display, 0, false, 0);
-        DisplayDot(shield->display, 1, false, 0);
-        DisplayDot(shield->display, 2, true, 50);
-        DisplayDot(shield->display, 3, false, 0);
-        break;
-
-    case valid_time:
-        current_state = valid_time;
-        DisplayBlinkingDigits(shield->display, 0, 3, 0);
-        if (ClockIsAlarmRinging(clock)) {
-            DisplayDot(shield->display, 0, true, 0);
-        } else {
-            DisplayDot(shield->display, 0, false, 0);
-        }
-        DisplayDot(shield->display, 1, false, 0);
-        DisplayDot(shield->display, 2, true, 500);
-        if (ClockIsAlarmActivated(clock)) {
-            DisplayDot(shield->display, 3, true, 0);
-        } else {
-            DisplayDot(shield->display, 3, false, 0);
-        }
-        break;
-
-    case adjust_time_minutes:
-        current_state = adjust_time_minutes;
-        DisplayBlinkingDigits(shield->display, 0, 1, 50);
-        DisplayDot(shield->display, 2, true, 0);
-        break;
-
-    case adjust_time_hours:
-        current_state = adjust_time_hours;
-        DisplayBlinkingDigits(shield->display, 2, 3, 50);
-        break;
-
-    case adjust_alarm_minutes:
-        current_state = adjust_alarm_minutes;
-        DisplayBlinkingDigits(shield->display, 0, 1, 50);
-        DisplayDot(shield->display, 0, true, 100);
-        DisplayDot(shield->display, 1, true, 100);
-        DisplayDot(shield->display, 2, true, 100);
-        DisplayDot(shield->display, 3, true, 100);
-        break;
-
-    case adjust_alarm_hours:
-        current_state = adjust_alarm_hours;
-        DisplayBlinkingDigits(shield->display, 2, 3, 50);
-        DisplayDot(shield->display, 0, true, 100);
-        DisplayDot(shield->display, 1, true, 100);
-        DisplayDot(shield->display, 2, true, 100);
-        DisplayDot(shield->display, 3, true, 100);
-        break;
-
-    default:
-        break;
-    }
-}
-
-static bool KeepedHoldButton(check_button_hold_p check_values) {
-    bool result = 0;
-    if (DigitalInputGetIsActive(check_values->button) && check_values->counter < check_values->time_to_hold) {
-        check_values->counter++;
-        if (check_values->counter == check_values->time_to_hold) {
-            check_values->counter = 0;
-            result = 1;
-        }
-    } else {
-        check_values->counter = 0;
-        result = 0;
-    }
-    return result;
-}
 
 void TurnOnAlarm(void) {
     DigitalOutputDeactivate(shield->buzzer); // Es activo en bajo
@@ -272,8 +125,6 @@ void TurnOffAlarm(void) {
 
 static void IncrementControl(uint8_t * array, uint8_t * array_limits, int size) {
     bool increment = false;
-
-    aux_30s = 0;
 
     for (int i = 0; i < size; i++) {
         if (array[i] != array_limits[i]) {
@@ -301,8 +152,6 @@ static void IncrementControl(uint8_t * array, uint8_t * array_limits, int size) 
 static void DecrementControl(uint8_t * array, uint8_t * array_limits, int size) {
     bool decrement = false;
 
-    aux_30s = 0;
-
     for (int i = 0; i < size; i++) {
         if (array[i] != 0) {
             decrement = true;
@@ -326,202 +175,61 @@ static void DecrementControl(uint8_t * array, uint8_t * array_limits, int size) 
     }
 }
 
-static void CanceledAdjustTime(shield_p shield, clock_p clock) {
-    if (ClockGetTime(clock, &new_time)) {
-        ChangeState(shield, valid_time);
-    } else {
-        ChangeState(shield, invalid_time);
+void TurnOnLedTask(void * pointer) {
+    led_task_arg_p args = pointer;
+    EventBits_t events;
+
+    while (true) {
+        //  cuando pasa el evento limpia el bit correspondiente, y espera hasta que el evento se dé
+        events = xEventGroupWaitBits(args->event_group, args->event_bit, true, false, portMAX_DELAY);
+        if (events & args->event_bit) {
+            DigitalOutputToggle(args->led);
+            vTaskDelay(pdMS_TO_TICKS(500));
+        }
     }
-    aux_30s = 0;
 }
 
-static bool Passed30s(void) {
-    bool result = false;
-
-    aux_30s++;
-    if (aux_30s == 3000) {
-        result = true;
-    }
-
-    return result;
-}
 /* === Public function implementation ========================================================= */
 
 int main(void) {
 
-    uint32_t aux_15ms = 0;
-    uint32_t aux_1s = 0;
+    // uint32_t aux_15ms = 0;
+    // uint32_t aux_1s = 0;
 
-    uint8_t minutes_limit[2] = {0, 6};
-    uint8_t hours_limit[2] = {4, 2};
+    // uint8_t minutes_limit[2] = {0, 6};
+    // uint8_t hours_limit[2] = {4, 2};
 
     shield = ShieldCreate();
-    DigitalOutputActivate(shield->buzzer);
+    // DigitalOutputActivate(shield->buzzer);
 
-    // preguntar: no lo puedo hacer static xq un argumento se crea en t de ejecucion
-    volatile check_button_hold_p set_time = &(struct check_button_hold_s){
-        .button = shield->set_time,
-        .counter = 0,
-        .time_to_hold = TIME_TO_HOLD_TO_CHANGE_STATE_MS,
-    };
-    volatile check_button_hold_p set_alarm = &(struct check_button_hold_s){
-        .button = shield->set_alarm,
-        .counter = 0,
-        .time_to_hold = TIME_TO_HOLD_TO_CHANGE_STATE_MS,
-    };
+    // clock_alarm_driver_p alarm_driver = &(struct clock_alarm_driver_s){
+    //     .TurnOnAlarm = TurnOnAlarm,
+    //     .TurnOffAlarm = TurnOffAlarm,
+    // };
 
-    clock_alarm_driver_p alarm_driver = &(struct clock_alarm_driver_s){
-        .TurnOnAlarm = TurnOnAlarm,
-        .TurnOffAlarm = TurnOffAlarm,
-    };
+    // clock_p clock = ClockCreate(1000, alarm_driver, 300);
 
-    clock = ClockCreate(1000, alarm_driver, 300);
+    EventGroupHandle_t buttons_event = xEventGroupCreate();
+    BaseType_t result;
 
-    ConfigureSystick();
-    ChangeState(shield, invalid_time);
+    if (buttons_event != NULL) {
+        button_task_arg_p button_args = malloc(sizeof(*button_args));
+        button_args->event_group = buttons_event;
+        button_args->event_bit = ACCEPT_BUTTON;
+        button_args->button = shield->accept;
+        result = xTaskCreate(ButtonTask, "Accept", configMINIMAL_STACK_SIZE, button_args, tskIDLE_PRIORITY + 1, NULL);
+    }
+    if (result == pdPASS) {
+        led_task_arg_p led_args = malloc(sizeof(*led_args));
+        led_args->event_group = buttons_event;
+        led_args->event_bit = ACCEPT_BUTTON;
+        led_args->led = shield->buzzer;
+        xTaskCreate(TurnOnLedTask, "Led", configMINIMAL_STACK_SIZE, led_args, tskIDLE_PRIORITY + 1, NULL);
+    }
+
+    vTaskStartScheduler();
 
     while (1) {
-
-        if ((milliseconds - aux_15ms) == 15) {
-            aux_15ms = milliseconds;
-
-            switch (current_state) {
-            case invalid_time:
-                if (KeepedHoldButton(set_time)) {
-                    ChangeState(shield, adjust_time_minutes);
-                    ClockGetTime(clock, &new_time);
-                }
-                break;
-            case valid_time:
-                if (KeepedHoldButton(set_time)) {
-                    ChangeState(shield, adjust_time_minutes);
-                    ClockGetTime(clock, &new_time);
-                } else if (KeepedHoldButton(set_alarm)) {
-                    ChangeState(shield, adjust_alarm_minutes);
-                    ClockGetAlarm(clock, &new_time);
-                    new_time.bcd[0] = 0; // Para que los segundos no afecten la alarma
-                    new_time.bcd[1] = 0; // Para que los segundos no afecten la alarma
-                } else if (ClockIsAlarmRinging(clock)) {
-                    if (DigitalInputWasActivated(shield->cancel)) {
-                        ClockTurnOffAlarm(clock);
-                        ChangeState(shield, valid_time);
-                    } else if (DigitalInputWasActivated(shield->accept)) {
-                        ClockSnoozeAlarm(clock);
-                        ChangeState(shield, valid_time);
-                    }
-                    ChangeState(shield, valid_time); // para activar el punto del 1er digito
-                } else if (ClockGetAlarm(clock, &new_time)) {
-                    if (!ClockIsAlarmSnoozed(clock)) {
-                        if (DigitalInputWasActivated(shield->accept)) {
-                            ClockSetAlarmState(clock, true);
-                            ChangeState(shield, valid_time);
-                        } else if (DigitalInputWasActivated(shield->cancel)) {
-                            ClockSetAlarmState(clock, false);
-                            ChangeState(shield, valid_time);
-                        }
-                    }
-                }
-
-                break;
-
-            case adjust_time_minutes:
-                if (DigitalInputWasActivated(shield->incremet)) {
-                    IncrementControl(&new_time.bcd[2], minutes_limit, 2);
-                } else if (DigitalInputWasActivated(shield->decrement)) {
-                    DecrementControl(&new_time.bcd[2], minutes_limit, 2);
-                } else if (DigitalInputWasActivated(shield->accept)) {
-                    ChangeState(shield, adjust_time_hours);
-                } else if (DigitalInputWasActivated(shield->cancel)) {
-                    CanceledAdjustTime(shield, clock);
-                }
-
-                DisplayWriteBCD(shield->display, &new_time.bcd[2], sizeof(new_time.bcd));
-
-                if (Passed30s()) {
-                    CanceledAdjustTime(shield, clock);
-                }
-                break;
-
-            case adjust_time_hours:
-                if (DigitalInputWasActivated(shield->incremet)) {
-                    IncrementControl(&new_time.bcd[4], hours_limit, 2);
-                } else if (DigitalInputWasActivated(shield->decrement)) {
-                    DecrementControl(&new_time.bcd[4], hours_limit, 2);
-                } else if (DigitalInputWasActivated(shield->cancel)) {
-                    CanceledAdjustTime(shield, clock);
-                } else if (DigitalInputWasActivated(shield->accept)) {
-                    if (ClockSetTime(clock, &new_time)) {
-                        ChangeState(shield, valid_time);
-                    } else {
-                        ChangeState(shield, invalid_time);
-                    }
-                    aux_30s = 0;
-                }
-                DisplayWriteBCD(shield->display, &new_time.bcd[2], sizeof(new_time.bcd));
-
-                if (Passed30s()) {
-                    CanceledAdjustTime(shield, clock);
-                }
-                break;
-
-            case adjust_alarm_minutes:
-                if (DigitalInputWasActivated(shield->incremet)) {
-                    IncrementControl(&new_time.bcd[2], minutes_limit, 2);
-                } else if (DigitalInputWasActivated(shield->decrement)) {
-                    DecrementControl(&new_time.bcd[2], minutes_limit, 2);
-                } else if (DigitalInputWasActivated(shield->accept)) {
-                    ChangeState(shield, adjust_alarm_hours);
-                } else if (DigitalInputWasActivated(shield->cancel)) {
-                    ChangeState(shield, valid_time);
-                }
-
-                DisplayWriteBCD(shield->display, &new_time.bcd[2], sizeof(new_time.bcd));
-
-                if (Passed30s()) {
-                    ChangeState(shield, valid_time);
-                }
-                break;
-
-            case adjust_alarm_hours:
-                if (DigitalInputWasActivated(shield->incremet)) {
-                    IncrementControl(&new_time.bcd[4], hours_limit, 2);
-                } else if (DigitalInputWasActivated(shield->decrement)) {
-                    DecrementControl(&new_time.bcd[4], hours_limit, 2);
-                } else if (DigitalInputWasActivated(shield->cancel)) {
-                    ChangeState(shield, valid_time);
-                } else if (DigitalInputWasActivated(shield->accept)) {
-                    ClockSetAlarm(clock, &new_time);
-                    ChangeState(shield, valid_time);
-                }
-                DisplayWriteBCD(shield->display, &new_time.bcd[2], sizeof(new_time.bcd));
-
-                if (Passed30s()) {
-                    ChangeState(shield, valid_time);
-                }
-                break;
-
-            default:
-                break;
-            }
-        }
-
-        if ((milliseconds - aux_1s) == 1000) {
-            aux_1s = milliseconds;
-        }
-    }
-}
-
-void SysTick_Handler(void) {
-    clock_time_u current_time;
-
-    ClockNewTick(clock);
-    milliseconds++;
-
-    DisplayRefresh(shield->display);
-
-    if (current_state == valid_time || current_state == invalid_time) {
-        ClockGetTime(clock, &current_time);
-        DisplayWriteBCD(shield->display, &current_time.bcd[2], sizeof(current_time.bcd)); //&current_time.bcd[2]
     }
 }
 

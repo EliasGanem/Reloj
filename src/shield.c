@@ -26,6 +26,8 @@ SPDX-License-Identifier: MIT
 
 /* === Headers files inclusions ==================================================================================== */
 
+#include "board.h"
+
 #include "shield.h"
 #include "edusia_config.h"
 #include "shield_config.h"
@@ -222,6 +224,9 @@ static void UpdateSegments(uint8_t segments) {
 
 shield_p ShieldCreate(void) {
     struct shield_s * self = NULL;
+
+    BoardSetup();
+    BoardSetup();
 
 #ifdef SHIELD_MAX_INSTANCE
     self = malloc(sizeof(struct shield_s));
