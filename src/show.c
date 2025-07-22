@@ -43,22 +43,26 @@ SPDX-License-Identifier: MIT
 
 /* === Public function definitions ================================================================================= */
 
-void DisplayRefreshTask(void * display) {
+void DisplayRefreshTask(void * pointer) {
+    display_refresh_task_arg_p args = pointer;
     TickType_t last_value = xTaskGetTickCount();
 
     while (1) {
-        DisplayRefresh(display);
+        // xSemaphoreTake(args->display_mutex, portMAX_DELAY);
+        DisplayRefresh(args->display);
+        // xSemaphoreGive(args->display_mutex);
         vTaskDelayUntil(&last_value, pdMS_TO_TICKS(1));
     }
 }
 
-void ChangeStateTask(void * pointer) {
+void ShowStateTask(void * pointer) {
     change_state_task_arg_p args = pointer;
     int state = 0;
 
     while (1) {
-        xQueuePeek(args->state_queue, &state, portMAX_DELAY);
+        xQueueReceive(args->state_queue, &state, portMAX_DELAY);
         xSemaphoreTake(args->display_mutex, portMAX_DELAY);
+
         switch (state) {
         case INVALID_TIME_STATE:
             DisplayBlinkingDigits(args->display, 0, 3, 50);

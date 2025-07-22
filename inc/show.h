@@ -38,9 +38,15 @@ extern "C" {
 
 /* === Public macros definitions =================================================================================== */
 
-#define SHOW_TASK_STACK_SIZE (configMINIMAL_STACK_SIZE)
+#define DISPLAY_REFRESH_TASK_STACK_SIZE (configMINIMAL_STACK_SIZE)
+#define SHOW_STATE_TASK_STACK_SIZE      (10 * configMINIMAL_STACK_SIZE)
 
 /* === Public data type declarations =============================================================================== */
+
+typedef struct display_refresh_task_arg_s {
+    SemaphoreHandle_t display_mutex;
+    display_p display;
+} * display_refresh_task_arg_p;
 
 typedef struct change_state_task_arg_s {
     QueueHandle_t state_queue;
@@ -54,7 +60,7 @@ typedef struct change_state_task_arg_s {
 
 void DisplayRefreshTask(void * arguments);
 
-void ChangeStateTask(void * pointer);
+void ShowStateTask(void * pointer);
 
 /* === End of conditional blocks =================================================================================== */
 

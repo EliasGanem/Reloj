@@ -64,28 +64,32 @@ void StateTask(void * pointer) {
     int state = 0;
 
     while (1) {
-        xSemaphoreTake(args->display_mutex, portMAX_DELAY);
         events = xEventGroupWaitBits(args->buttons_event_group, BUTTONS_EVENT, pdTRUE, pdFALSE, portMAX_DELAY);
+        xSemaphoreTake(args->display_mutex, portMAX_DELAY);
         switch (events) {
         case ACCEPT_EVENT:
             state = INVALID_TIME_STATE;
-            // xQueueSend(args->state_queue, &state, portMAX_DELAY);
-            DigitalOutputDeactivate(args->buzzer);
             DisplayWriteBCD(args->display, accept.bcd, DISPLAY_MAX_DIGITS);
             break;
         case CANCEL_EVENT:
+            state = VALID_TIME_STATE;
             DisplayWriteBCD(args->display, cancel.bcd, DISPLAY_MAX_DIGITS);
             break;
         case SET_TIME_EVENT:
+            state = ADJUST_TIME_HOURS_STATE;
             DisplayWriteBCD(args->display, set_time.bcd, DISPLAY_MAX_DIGITS);
             break;
         case SET_ALARM_EVENT:
+            state = ADJUST_ALARM_HOURS_STATE;
             DisplayWriteBCD(args->display, set_alarm.bcd, DISPLAY_MAX_DIGITS);
             break;
         default:
             break;
         }
         xSemaphoreGive(args->display_mutex);
+        // aquí hay un problema haciendo que espere indefinidamente, si la tarea de ShowState no saca el elemento de la
+        // cola lo suficientemente rapido
+        xQueueSend(args->state_queue, &state, portMAX_DELAY);
     }
 }
 

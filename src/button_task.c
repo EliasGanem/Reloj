@@ -27,7 +27,7 @@ SPDX-License-Identifier: MIT
 
 /* === Macros definitions ========================================================================================== */
 
-#define ButtonScanDelay 15
+#define ButtonScanDelay 20
 
 /* === Private data type declarations ============================================================================== */
 

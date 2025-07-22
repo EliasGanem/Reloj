@@ -246,6 +246,20 @@ int main(void) {
         button_args->button = shield->set_alarm;
         result = xTaskCreate(ButtonTask, "SetAlarm", BUTTON_TASK_STACK_SIZE, button_args, BUTTON_TASK_PRIOTIRY, NULL);
     }
+    if (buttons_event != NULL) {
+        button_task_arg_p button_args = malloc(sizeof(*button_args));
+        button_args->event_group = buttons_event;
+        button_args->event_bit = INCREMENT_EVENT;
+        button_args->button = shield->incremet;
+        result = xTaskCreate(ButtonTask, "Increment", BUTTON_TASK_STACK_SIZE, button_args, BUTTON_TASK_PRIOTIRY, NULL);
+    }
+    if (buttons_event != NULL) {
+        button_task_arg_p button_args = malloc(sizeof(*button_args));
+        button_args->event_group = buttons_event;
+        button_args->event_bit = DECREMENT_EVENT;
+        button_args->button = shield->decrement;
+        result = xTaskCreate(ButtonTask, "Decrement", BUTTON_TASK_STACK_SIZE, button_args, BUTTON_TASK_PRIOTIRY, NULL);
+    }
     if (result == pdPASS) {
         state_task_arg_p state_args = malloc(sizeof(*state_args));
         state_args->display_mutex = display_mutex;
@@ -259,19 +273,22 @@ int main(void) {
         state_args->set_time_event = SET_TIME_EVENT;
         state_args->buzzer = shield->buzzer;
         state_args->display = shield->display;
-        result = xTaskCreate(StateTask, "States", STATE_TASK_STACK_SIZE, state_args, tskIDLE_PRIORITY + 2, NULL);
+        result = xTaskCreate(StateTask, "States", STATE_TASK_STACK_SIZE, state_args, tskIDLE_PRIORITY + 3, NULL);
     }
     if (result == pdPASS) {
-        result = xTaskCreate(DisplayRefreshTask, "Refresh", STATE_TASK_STACK_SIZE, shield->display,
-                             tskIDLE_PRIORITY + 3, NULL);
+        display_refresh_task_arg_p display_args = malloc(sizeof(*display_args));
+        display_args->display_mutex = display_mutex;
+        display_args->display = shield->display;
+        result = xTaskCreate(DisplayRefreshTask, "Refresh", DISPLAY_REFRESH_TASK_STACK_SIZE, display_args,
+                             tskIDLE_PRIORITY + 9, NULL);
     }
     // if (result == pdPASS) {
     //     change_state_task_arg_p change_states_args = malloc(sizeof(*change_states_args));
     //     change_states_args->state_queue = state_queue;
     //     change_states_args->display_mutex = display_mutex;
     //     change_states_args->display = shield->display;
-    //     result = xTaskCreate(ChangeStateTask, "ChangeState", STATE_TASK_STACK_SIZE, shield->display,
-    //                          tskIDLE_PRIORITY + 3, NULL);
+    //     result = xTaskCreate(ShowStateTask, "ShowState", SHOW_STATE_TASK_STACK_SIZE, shield->display,
+    //                          tskIDLE_PRIORITY + 2, NULL);
     // }
 
     vTaskStartScheduler();
