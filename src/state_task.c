@@ -17,17 +17,22 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 SPDX-License-Identifier: MIT
 *********************************************************************************************************************/
 
-/** @file button_task.c
- ** @brief Definiciones de la biblioteca para la gestión de los botones - Electrónica 4 2025
+/** @file state_task.c
+ ** @brief Definiciones de la biblioteca para la gestión de estados - Electrónica 4 2025
  **/
 
 /* === Headers files inclusions ==================================================================================== */
 
-#include "button_task.h"
+#include "FreeRTOS.h"
+#include "state_task.h"
+
+#include "shield_config.h"
+#include "clock.h"
+#include "config.h"
 
 /* === Macros definitions ========================================================================================== */
 
-#define ButtonScanDelay 15
+#define StateTaskDelay
 
 /* === Private data type declarations ============================================================================== */
 
@@ -41,14 +46,46 @@ SPDX-License-Identifier: MIT
 
 /* === Public function definitions ================================================================================= */
 
-void ButtonTask(void * pointer) {
-    button_task_arg_p args = pointer;
+void StateTask(void * pointer) {
+    state_task_arg_p args = pointer;
+    EventBits_t events;
+    clock_time_u accept = {
+        .time = {.hours = {0, 3}, .minutes = {0, 2}, .seconds = {0, 1}},
+    };
+    clock_time_u cancel = {
+        .time = {.hours = {0, 3}, .minutes = {0, 2}, .seconds = {0, 2}},
+    };
+    clock_time_u set_time = {
+        .time = {.hours = {0, 3}, .minutes = {0, 2}, .seconds = {0, 3}},
+    };
+    clock_time_u set_alarm = {
+        .time = {.hours = {0, 3}, .minutes = {0, 2}, .seconds = {0, 4}},
+    };
+    int state = 0;
 
     while (1) {
-        if (DigitalInputGetIsActive(args->button)) {
-            xEventGroupSetBits(args->event_group, args->event_bit);
+        xSemaphoreTake(args->display_mutex, portMAX_DELAY);
+        events = xEventGroupWaitBits(args->buttons_event_group, BUTTONS_EVENT, pdTRUE, pdFALSE, portMAX_DELAY);
+        switch (events) {
+        case ACCEPT_EVENT:
+            state = INVALID_TIME_STATE;
+            // xQueueSend(args->state_queue, &state, portMAX_DELAY);
+            DigitalOutputDeactivate(args->buzzer);
+            DisplayWriteBCD(args->display, accept.bcd, DISPLAY_MAX_DIGITS);
+            break;
+        case CANCEL_EVENT:
+            DisplayWriteBCD(args->display, cancel.bcd, DISPLAY_MAX_DIGITS);
+            break;
+        case SET_TIME_EVENT:
+            DisplayWriteBCD(args->display, set_time.bcd, DISPLAY_MAX_DIGITS);
+            break;
+        case SET_ALARM_EVENT:
+            DisplayWriteBCD(args->display, set_alarm.bcd, DISPLAY_MAX_DIGITS);
+            break;
+        default:
+            break;
         }
-        vTaskDelay(pdMS_TO_TICKS(ButtonScanDelay));
+        xSemaphoreGive(args->display_mutex);
     }
 }
 

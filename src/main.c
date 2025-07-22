@@ -42,9 +42,12 @@
 
 #include "FreeRTOS.h"
 #include "task.h"
-// #include "queue.h"
+#include "queue.h"
+#include "semphr.h"
 
 #include "button_task.h"
+#include "state_task.h"
+#include "show.h"
 #include "shield_config.h"
 
 #include "shield.h"
@@ -56,8 +59,7 @@
 
 /* === Macros definitions ====================================================================== */
 
-#define ACCEPT_BUTTON BUTTONS_EVENT_BUTTON_0;
-#define CANCEL_BUTTON BUTTONS_EVENT_BUTTON_1;
+#define BUTTON_TASK_PRIOTIRY (tskIDLE_PRIORITY + 1)
 
 /* === Private data type declarations ========================================================== */
 
@@ -200,7 +202,7 @@ int main(void) {
     // uint8_t hours_limit[2] = {4, 2};
 
     shield = ShieldCreate();
-    // DigitalOutputActivate(shield->buzzer);
+    DigitalOutputActivate(shield->buzzer);
 
     // clock_alarm_driver_p alarm_driver = &(struct clock_alarm_driver_s){
     //     .TurnOnAlarm = TurnOnAlarm,
@@ -210,22 +212,67 @@ int main(void) {
     // clock_p clock = ClockCreate(1000, alarm_driver, 300);
 
     EventGroupHandle_t buttons_event = xEventGroupCreate();
+    //! Cola que tiene el estado actual
+    QueueHandle_t state_queue = xQueueCreate(1, STATE_SIZE);
+    //! Mutex para uso del display
+    SemaphoreHandle_t display_mutex = xSemaphoreCreateMutex();
     BaseType_t result;
 
+    if (buttons_event && state_queue && display_mutex) {
+        button_task_arg_p button_args = malloc(sizeof(*button_args));
+        button_args->event_group = buttons_event;
+        button_args->event_bit = ACCEPT_EVENT;
+        button_args->button = shield->accept;
+        result = xTaskCreate(ButtonTask, "Accept", BUTTON_TASK_STACK_SIZE, button_args, BUTTON_TASK_PRIOTIRY, NULL);
+    }
     if (buttons_event != NULL) {
         button_task_arg_p button_args = malloc(sizeof(*button_args));
         button_args->event_group = buttons_event;
-        button_args->event_bit = ACCEPT_BUTTON;
-        button_args->button = shield->accept;
-        result = xTaskCreate(ButtonTask, "Accept", configMINIMAL_STACK_SIZE, button_args, tskIDLE_PRIORITY + 1, NULL);
+        button_args->event_bit = CANCEL_EVENT;
+        button_args->button = shield->cancel;
+        result = xTaskCreate(ButtonTask, "Cancel", BUTTON_TASK_STACK_SIZE, button_args, BUTTON_TASK_PRIOTIRY, NULL);
+    }
+    if (buttons_event != NULL) {
+        button_task_arg_p button_args = malloc(sizeof(*button_args));
+        button_args->event_group = buttons_event;
+        button_args->event_bit = SET_TIME_EVENT;
+        button_args->button = shield->set_time;
+        result = xTaskCreate(ButtonTask, "SetTime", BUTTON_TASK_STACK_SIZE, button_args, BUTTON_TASK_PRIOTIRY, NULL);
+    }
+    if (buttons_event != NULL) {
+        button_task_arg_p button_args = malloc(sizeof(*button_args));
+        button_args->event_group = buttons_event;
+        button_args->event_bit = SET_ALARM_EVENT;
+        button_args->button = shield->set_alarm;
+        result = xTaskCreate(ButtonTask, "SetAlarm", BUTTON_TASK_STACK_SIZE, button_args, BUTTON_TASK_PRIOTIRY, NULL);
     }
     if (result == pdPASS) {
-        led_task_arg_p led_args = malloc(sizeof(*led_args));
-        led_args->event_group = buttons_event;
-        led_args->event_bit = ACCEPT_BUTTON;
-        led_args->led = shield->buzzer;
-        xTaskCreate(TurnOnLedTask, "Led", configMINIMAL_STACK_SIZE, led_args, tskIDLE_PRIORITY + 1, NULL);
+        state_task_arg_p state_args = malloc(sizeof(*state_args));
+        state_args->display_mutex = display_mutex;
+        state_args->state_queue = state_queue;
+        state_args->buttons_event_group = buttons_event;
+        state_args->accept_event = ACCEPT_EVENT;
+        state_args->cancel_event = CANCEL_EVENT;
+        state_args->decrement_event = DECREMENT_EVENT;
+        state_args->increment_event = INCREMENT_EVENT;
+        state_args->set_alarm_event = SET_ALARM_EVENT;
+        state_args->set_time_event = SET_TIME_EVENT;
+        state_args->buzzer = shield->buzzer;
+        state_args->display = shield->display;
+        result = xTaskCreate(StateTask, "States", STATE_TASK_STACK_SIZE, state_args, tskIDLE_PRIORITY + 2, NULL);
     }
+    if (result == pdPASS) {
+        result = xTaskCreate(DisplayRefreshTask, "Refresh", STATE_TASK_STACK_SIZE, shield->display,
+                             tskIDLE_PRIORITY + 3, NULL);
+    }
+    // if (result == pdPASS) {
+    //     change_state_task_arg_p change_states_args = malloc(sizeof(*change_states_args));
+    //     change_states_args->state_queue = state_queue;
+    //     change_states_args->display_mutex = display_mutex;
+    //     change_states_args->display = shield->display;
+    //     result = xTaskCreate(ChangeStateTask, "ChangeState", STATE_TASK_STACK_SIZE, shield->display,
+    //                          tskIDLE_PRIORITY + 3, NULL);
+    // }
 
     vTaskStartScheduler();
 

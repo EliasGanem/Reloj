@@ -17,39 +17,49 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 SPDX-License-Identifier: MIT
 *********************************************************************************************************************/
 
-/** @file button_task.c
- ** @brief Definiciones de la biblioteca para la gestión de los botones - Electrónica 4 2025
+#ifndef SHOW_H_
+#define SHOW_H_
+
+/** @file show.h
+ ** @brief Declaraciones de la biblioteca para determinar que mostrar - Electrónica 4 2025
  **/
 
 /* === Headers files inclusions ==================================================================================== */
 
-#include "button_task.h"
+#include "queue.h"
+#include "semphr.h"
+#include "display.h"
 
-/* === Macros definitions ========================================================================================== */
+/* === Header for C++ compatibility ================================================================================ */
 
-#define ButtonScanDelay 15
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-/* === Private data type declarations ============================================================================== */
+/* === Public macros definitions =================================================================================== */
 
-/* === Private function declarations =============================================================================== */
+#define SHOW_TASK_STACK_SIZE (configMINIMAL_STACK_SIZE)
 
-/* === Private variable definitions ================================================================================ */
+/* === Public data type declarations =============================================================================== */
 
-/* === Public variable definitions ================================================================================= */
+typedef struct change_state_task_arg_s {
+    QueueHandle_t state_queue;
+    SemaphoreHandle_t display_mutex;
+    display_p display;
+} * change_state_task_arg_p;
 
-/* === Private function definitions ================================================================================ */
+/* === Public variable declarations ================================================================================ */
 
-/* === Public function definitions ================================================================================= */
+/* === Public function declarations ================================================================================ */
 
-void ButtonTask(void * pointer) {
-    button_task_arg_p args = pointer;
+void DisplayRefreshTask(void * arguments);
 
-    while (1) {
-        if (DigitalInputGetIsActive(args->button)) {
-            xEventGroupSetBits(args->event_group, args->event_bit);
-        }
-        vTaskDelay(pdMS_TO_TICKS(ButtonScanDelay));
-    }
+void ChangeStateTask(void * pointer);
+
+/* === End of conditional blocks =================================================================================== */
+
+#ifdef __cplusplus
 }
+#endif
 
-/* === End of documentation ======================================================================================== */
+#endif /* SHOW_H_ */

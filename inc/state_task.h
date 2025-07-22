@@ -17,18 +17,23 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 SPDX-License-Identifier: MIT
 *********************************************************************************************************************/
 
-#ifndef BUTTON_TASK_H_
-#define BUTTON_TASK_H_
+#ifndef STATE_TASK_H_
+#define STATE_TASK_H_
 
-/** @file button_task.h
- ** @brief Declaraciones de la biblioteca para la gestión de los botones - Electrónica 4 2025
+/** @file state_task.h
+ ** @brief Declaraciones de la biblioteca para la gestión de estados - Electrónica 4 2025
  **/
 
 /* === Headers files inclusions ==================================================================================== */
 
-#include "FreeRTOS.h"
 #include "event_groups.h"
-#include "digital_input.h"
+#include "queue.h"
+#include "semphr.h"
+
+#include <stdint.h>
+#include "digital_output.h"
+#include "display.h"
+#include "config.h"
 
 /* === Header for C++ compatibility ================================================================================ */
 
@@ -38,30 +43,40 @@ extern "C" {
 
 /* === Public macros definitions =================================================================================== */
 
-#define BUTTONS_EVENT_BUTTON_0 (1 << 0)
-#define BUTTONS_EVENT_BUTTON_1 (1 << 1)
-#define BUTTONS_EVENT_BUTTON_2 (1 << 2)
-#define BUTTONS_EVENT_BUTTON_3 (1 << 3)
-#define BUTTONS_EVENT_BUTTON_4 (1 << 4)
-#define BUTTONS_EVENT_BUTTON_5 (1 << 5)
-#define BUTTONS_EVENT_BUTTON_6 (1 << 6)
-#define BUTTONS_EVENT_BUTTON_7 (1 << 7)
+#define STATE_TASK_STACK_SIZE (configMINIMAL_STACK_SIZE)
 
-#define BUTTON_TASK_STACK_SIZE (configMINIMAL_STACK_SIZE)
+#define STATE_SIZE            sizeof(int)
 
 /* === Public data type declarations =============================================================================== */
 
-typedef struct button_task_arg_s {
-    digital_input_p button;
-    EventGroupHandle_t event_group;
-    int event_bit;
-} * button_task_arg_p;
+typedef enum {
+    invalid_time = INVALID_TIME_STATE,
+    valid_time = VALID_TIME_STATE,
+    adjust_time_hours = ADJUST_TIME_HOURS_STATE,
+    adjust_time_minutes = ADJUST_TIME_MINUNTES_STATE,
+    adjust_alarm_hours = ADJUST_ALARM_HOURS_STATE,
+    adjust_alarm_minutes = ADJUST_ALARM_MINUNTES_STATE,
+} states_e;
+
+typedef struct state_task_arg_s {
+    SemaphoreHandle_t display_mutex;
+    QueueHandle_t state_queue;
+    EventGroupHandle_t buttons_event_group;
+    uint8_t accept_event;
+    uint8_t cancel_event;
+    uint8_t increment_event;
+    uint8_t decrement_event;
+    uint8_t set_time_event;
+    uint8_t set_alarm_event;
+    digital_output_p buzzer;
+    display_p display;
+} * state_task_arg_p;
 
 /* === Public variable declarations ================================================================================ */
 
 /* === Public function declarations ================================================================================ */
 
-void ButtonTask(void * arguments);
+void StateTask(void * arguments);
 
 /* === End of conditional blocks =================================================================================== */
 
@@ -69,4 +84,4 @@ void ButtonTask(void * arguments);
 }
 #endif
 
-#endif /* BUTTON_TASK_H_ */
+#endif /* STATE_TASK_H_ */

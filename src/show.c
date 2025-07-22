@@ -17,13 +17,15 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 SPDX-License-Identifier: MIT
 *********************************************************************************************************************/
 
-/** @file button_task.c
- ** @brief Definiciones de la biblioteca para la gestión de los botones - Electrónica 4 2025
+/** @file show.c
+ ** @brief Definiciones de la biblioteca para determinar que se muesta - Electrónica 4 2025
  **/
 
 /* === Headers files inclusions ==================================================================================== */
 
-#include "button_task.h"
+#include "FreeRTOS.h"
+#include "show.h"
+#include "config.h"
 
 /* === Macros definitions ========================================================================================== */
 
@@ -41,14 +43,58 @@ SPDX-License-Identifier: MIT
 
 /* === Public function definitions ================================================================================= */
 
-void ButtonTask(void * pointer) {
-    button_task_arg_p args = pointer;
+void DisplayRefreshTask(void * display) {
+    TickType_t last_value = xTaskGetTickCount();
 
     while (1) {
-        if (DigitalInputGetIsActive(args->button)) {
-            xEventGroupSetBits(args->event_group, args->event_bit);
+        DisplayRefresh(display);
+        vTaskDelayUntil(&last_value, pdMS_TO_TICKS(1));
+    }
+}
+
+void ChangeStateTask(void * pointer) {
+    change_state_task_arg_p args = pointer;
+    int state = 0;
+
+    while (1) {
+        xQueuePeek(args->state_queue, &state, portMAX_DELAY);
+        xSemaphoreTake(args->display_mutex, portMAX_DELAY);
+        switch (state) {
+        case INVALID_TIME_STATE:
+            DisplayBlinkingDigits(args->display, 0, 3, 50);
+            DisplayDot(args->display, 0, false, 0);
+            DisplayDot(args->display, 1, false, 0);
+            DisplayDot(args->display, 2, true, 50);
+            DisplayDot(args->display, 3, false, 0);
+            break;
+        case VALID_TIME_STATE:
+            DisplayBlinkingDigits(args->display, 0, 3, 0);
+            break;
+        case ADJUST_TIME_MINUNTES_STATE:
+            DisplayBlinkingDigits(args->display, 0, 1, 50);
+            DisplayDot(args->display, 2, true, 0);
+            break;
+        case ADJUST_TIME_HOURS_STATE:
+            DisplayBlinkingDigits(args->display, 2, 3, 50);
+            break;
+        case ADJUST_ALARM_MINUNTES_STATE:
+            DisplayBlinkingDigits(args->display, 0, 1, 50);
+            DisplayDot(args->display, 0, true, 100);
+            DisplayDot(args->display, 1, true, 100);
+            DisplayDot(args->display, 2, true, 100);
+            DisplayDot(args->display, 3, true, 100);
+            break;
+        case ADJUST_ALARM_HOURS_STATE:
+            DisplayBlinkingDigits(args->display, 2, 3, 50);
+            DisplayDot(args->display, 0, true, 100);
+            DisplayDot(args->display, 1, true, 100);
+            DisplayDot(args->display, 2, true, 100);
+            DisplayDot(args->display, 3, true, 100);
+            break;
+        default:
+            break;
         }
-        vTaskDelay(pdMS_TO_TICKS(ButtonScanDelay));
+        xSemaphoreGive(args->display_mutex);
     }
 }
 
