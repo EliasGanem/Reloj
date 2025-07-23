@@ -203,6 +203,8 @@ int main(void) {
 
     shield = ShieldCreate();
     DigitalOutputActivate(shield->buzzer);
+    uint8_t invalid[6] = {0, 0, 0, 0, 0, 0};
+    DisplayWriteBCD(shield->display, invalid, 6);
 
     // clock_alarm_driver_p alarm_driver = &(struct clock_alarm_driver_s){
     //     .TurnOnAlarm = TurnOnAlarm,
@@ -262,7 +264,6 @@ int main(void) {
     }
     if (result == pdPASS) {
         state_task_arg_p state_args = malloc(sizeof(*state_args));
-        state_args->display_mutex = display_mutex;
         state_args->state_queue = state_queue;
         state_args->buttons_event_group = buttons_event;
         state_args->accept_event = ACCEPT_EVENT;
@@ -273,7 +274,7 @@ int main(void) {
         state_args->set_time_event = SET_TIME_EVENT;
         state_args->buzzer = shield->buzzer;
         state_args->display = shield->display;
-        result = xTaskCreate(StateTask, "States", STATE_TASK_STACK_SIZE, state_args, tskIDLE_PRIORITY + 3, NULL);
+        result = xTaskCreate(StateTask, "States", STATE_TASK_STACK_SIZE, state_args, tskIDLE_PRIORITY + 2, NULL);
     }
     if (result == pdPASS) {
         display_refresh_task_arg_p display_args = malloc(sizeof(*display_args));
@@ -282,14 +283,14 @@ int main(void) {
         result = xTaskCreate(DisplayRefreshTask, "Refresh", DISPLAY_REFRESH_TASK_STACK_SIZE, display_args,
                              tskIDLE_PRIORITY + 9, NULL);
     }
-    // if (result == pdPASS) {
-    //     change_state_task_arg_p change_states_args = malloc(sizeof(*change_states_args));
-    //     change_states_args->state_queue = state_queue;
-    //     change_states_args->display_mutex = display_mutex;
-    //     change_states_args->display = shield->display;
-    //     result = xTaskCreate(ShowStateTask, "ShowState", SHOW_STATE_TASK_STACK_SIZE, shield->display,
-    //                          tskIDLE_PRIORITY + 2, NULL);
-    // }
+    if (result == pdPASS) {
+        change_state_task_arg_p change_states_args = malloc(sizeof(*change_states_args));
+        change_states_args->state_queue = state_queue;
+        change_states_args->display_mutex = display_mutex;
+        change_states_args->display = shield->display;
+        result = xTaskCreate(ShowStateTask, "ShowState", SHOW_STATE_TASK_STACK_SIZE, shield->display,
+                             tskIDLE_PRIORITY + 3, NULL);
+    }
 
     vTaskStartScheduler();
 

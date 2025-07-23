@@ -26,6 +26,7 @@ SPDX-License-Identifier: MIT
 #include "FreeRTOS.h"
 #include "show.h"
 #include "config.h"
+#include "clock.h"
 
 /* === Macros definitions ========================================================================================== */
 
@@ -48,9 +49,9 @@ void DisplayRefreshTask(void * pointer) {
     TickType_t last_value = xTaskGetTickCount();
 
     while (1) {
-        // xSemaphoreTake(args->display_mutex, portMAX_DELAY);
+        xSemaphoreTake(args->display_mutex, portMAX_DELAY);
         DisplayRefresh(args->display);
-        // xSemaphoreGive(args->display_mutex);
+        xSemaphoreGive(args->display_mutex);
         vTaskDelayUntil(&last_value, pdMS_TO_TICKS(1));
     }
 }
@@ -59,12 +60,20 @@ void ShowStateTask(void * pointer) {
     change_state_task_arg_p args = pointer;
     int state = 0;
 
+    clock_time_u value_1 = {
+        .time = {.hours = {0, 3}, .minutes = {0, 2}, .seconds = {0, 1}},
+    };
+    clock_time_u value_2 = {
+        .time = {.hours = {0, 3}, .minutes = {0, 2}, .seconds = {0, 2}},
+    };
+
     while (1) {
         xQueueReceive(args->state_queue, &state, portMAX_DELAY);
         xSemaphoreTake(args->display_mutex, portMAX_DELAY);
 
         switch (state) {
         case INVALID_TIME_STATE:
+            DisplayWriteBCD(args->display, value_1.bcd, DISPLAY_MAX_DIGITS);
             DisplayBlinkingDigits(args->display, 0, 3, 50);
             DisplayDot(args->display, 0, false, 0);
             DisplayDot(args->display, 1, false, 0);
@@ -72,28 +81,8 @@ void ShowStateTask(void * pointer) {
             DisplayDot(args->display, 3, false, 0);
             break;
         case VALID_TIME_STATE:
+            DisplayWriteBCD(args->display, value_2.bcd, DISPLAY_MAX_DIGITS);
             DisplayBlinkingDigits(args->display, 0, 3, 0);
-            break;
-        case ADJUST_TIME_MINUNTES_STATE:
-            DisplayBlinkingDigits(args->display, 0, 1, 50);
-            DisplayDot(args->display, 2, true, 0);
-            break;
-        case ADJUST_TIME_HOURS_STATE:
-            DisplayBlinkingDigits(args->display, 2, 3, 50);
-            break;
-        case ADJUST_ALARM_MINUNTES_STATE:
-            DisplayBlinkingDigits(args->display, 0, 1, 50);
-            DisplayDot(args->display, 0, true, 100);
-            DisplayDot(args->display, 1, true, 100);
-            DisplayDot(args->display, 2, true, 100);
-            DisplayDot(args->display, 3, true, 100);
-            break;
-        case ADJUST_ALARM_HOURS_STATE:
-            DisplayBlinkingDigits(args->display, 2, 3, 50);
-            DisplayDot(args->display, 0, true, 100);
-            DisplayDot(args->display, 1, true, 100);
-            DisplayDot(args->display, 2, true, 100);
-            DisplayDot(args->display, 3, true, 100);
             break;
         default:
             break;

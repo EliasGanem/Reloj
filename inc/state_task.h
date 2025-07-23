@@ -28,7 +28,6 @@ SPDX-License-Identifier: MIT
 
 #include "event_groups.h"
 #include "queue.h"
-#include "semphr.h"
 
 #include <stdint.h>
 #include "digital_output.h"
@@ -59,7 +58,6 @@ typedef enum {
 } states_e;
 
 typedef struct state_task_arg_s {
-    SemaphoreHandle_t display_mutex;
     QueueHandle_t state_queue;
     EventGroupHandle_t buttons_event_group;
     uint8_t accept_event;

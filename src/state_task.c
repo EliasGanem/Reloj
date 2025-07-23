@@ -27,7 +27,6 @@ SPDX-License-Identifier: MIT
 #include "state_task.h"
 
 #include "shield_config.h"
-#include "clock.h"
 #include "config.h"
 
 /* === Macros definitions ========================================================================================== */
@@ -49,44 +48,20 @@ SPDX-License-Identifier: MIT
 void StateTask(void * pointer) {
     state_task_arg_p args = pointer;
     EventBits_t events;
-    clock_time_u accept = {
-        .time = {.hours = {0, 3}, .minutes = {0, 2}, .seconds = {0, 1}},
-    };
-    clock_time_u cancel = {
-        .time = {.hours = {0, 3}, .minutes = {0, 2}, .seconds = {0, 2}},
-    };
-    clock_time_u set_time = {
-        .time = {.hours = {0, 3}, .minutes = {0, 2}, .seconds = {0, 3}},
-    };
-    clock_time_u set_alarm = {
-        .time = {.hours = {0, 3}, .minutes = {0, 2}, .seconds = {0, 4}},
-    };
     int state = 0;
 
     while (1) {
         events = xEventGroupWaitBits(args->buttons_event_group, BUTTONS_EVENT, pdTRUE, pdFALSE, portMAX_DELAY);
-        xSemaphoreTake(args->display_mutex, portMAX_DELAY);
         switch (events) {
         case ACCEPT_EVENT:
             state = INVALID_TIME_STATE;
-            DisplayWriteBCD(args->display, accept.bcd, DISPLAY_MAX_DIGITS);
             break;
         case CANCEL_EVENT:
             state = VALID_TIME_STATE;
-            DisplayWriteBCD(args->display, cancel.bcd, DISPLAY_MAX_DIGITS);
-            break;
-        case SET_TIME_EVENT:
-            state = ADJUST_TIME_HOURS_STATE;
-            DisplayWriteBCD(args->display, set_time.bcd, DISPLAY_MAX_DIGITS);
-            break;
-        case SET_ALARM_EVENT:
-            state = ADJUST_ALARM_HOURS_STATE;
-            DisplayWriteBCD(args->display, set_alarm.bcd, DISPLAY_MAX_DIGITS);
             break;
         default:
             break;
         }
-        xSemaphoreGive(args->display_mutex);
         // aquí hay un problema haciendo que espere indefinidamente, si la tarea de ShowState no saca el elemento de la
         // cola lo suficientemente rapido
         xQueueSend(args->state_queue, &state, portMAX_DELAY);
