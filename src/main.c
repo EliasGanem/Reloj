@@ -45,17 +45,16 @@
 #include "queue.h"
 #include "semphr.h"
 
-#include "button_task.h"
-#include "state_task.h"
-#include "show.h"
 #include "shield_config.h"
-
 #include "shield.h"
 #include "clock.h"
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include "edusia_config.h" // solo para usar los leds
+#include "button_task.h"
+#include "state_task.h"
+#include "display_refresh_task.h"
+#include "clock_tick_task.h"
 
 /* === Macros definitions ====================================================================== */
 
@@ -85,30 +84,6 @@ void TurnOnAlarm(void);
  */
 void TurnOffAlarm(void);
 
-/**
- * @brief Funcion para incrementar los digitos de un númeroo en formato array cada vez que es llamada y realiza el
- * control de si se alcanzó el limite establecido.
- *
- * El el LS digit es el 0 y el MS digit es el tamaño del array-1.
- *
- * @param array array a modificarl
- * @param limits_array array con los limites maximos del número
- * @param size tamaño de los array
- */
-static void IncrementControl(uint8_t * array, uint8_t * array_limits, int size);
-
-/**
- * @brief Funcion para decrementar los digitos de un númeroo en formato array cada vez que es llamada y realiza el
- * control de si se alcanzó el limite establecido.
- *
- * El el LS digit es el 0 y el MS digit es el tamaño del array-1.
- *
- * @param array array a modificarl
- * @param limits_array array con los limites maximos del número
- * @param size tamaño de los array
- */
-static void DecrementControl(uint8_t * array, uint8_t * array_limits, int size);
-
 /* === Public variable definitions ============================================================= */
 
 /* === Private variable definitions ============================================================ */
@@ -123,58 +98,6 @@ void TurnOnAlarm(void) {
 
 void TurnOffAlarm(void) {
     DigitalOutputActivate(shield->buzzer);
-}
-
-static void IncrementControl(uint8_t * array, uint8_t * array_limits, int size) {
-    bool increment = false;
-
-    for (int i = 0; i < size; i++) {
-        if (array[i] != array_limits[i]) {
-            increment = true;
-        }
-    }
-
-    if (increment) {
-        for (int i = 0; i < size; i++) {
-            if (array[i] < 9) {
-                array[i]++;
-                for (int j = 0; j < i; j++) {
-                    array[j] = 0;
-                }
-                i = size;
-            }
-        }
-    } else {
-        for (int i = 0; i < size; i++) {
-            array[i] = 0;
-        }
-    }
-}
-
-static void DecrementControl(uint8_t * array, uint8_t * array_limits, int size) {
-    bool decrement = false;
-
-    for (int i = 0; i < size; i++) {
-        if (array[i] != 0) {
-            decrement = true;
-        }
-    }
-
-    if (decrement) {
-        for (int i = 0; i < size; i++) {
-            if (array[i] > 0) {
-                array[i]--;
-                for (int j = 0; j < i; j++) {
-                    array[j] = 9;
-                }
-                i = size;
-            }
-        }
-    } else {
-        for (int i = 0; i < size; i++) {
-            array[i] = array_limits[i];
-        }
-    }
 }
 
 void TurnOnLedTask(void * pointer) {
@@ -203,77 +126,86 @@ int main(void) {
 
     shield = ShieldCreate();
     DigitalOutputActivate(shield->buzzer);
-    uint8_t invalid[6] = {0, 0, 0, 0, 0, 0};
+    uint8_t invalid[6] = {9, 9, 9, 9, 9, 9};
     DisplayWriteBCD(shield->display, invalid, 6);
 
-    // clock_alarm_driver_p alarm_driver = &(struct clock_alarm_driver_s){
-    //     .TurnOnAlarm = TurnOnAlarm,
-    //     .TurnOffAlarm = TurnOffAlarm,
-    // };
+    clock_alarm_driver_p alarm_driver = &(struct clock_alarm_driver_s){
+        .TurnOnAlarm = TurnOnAlarm,
+        .TurnOffAlarm = TurnOffAlarm,
+    };
 
-    // clock_p clock = ClockCreate(1000, alarm_driver, 300);
+    clock_p clock = ClockCreate(1000, alarm_driver, 300);
 
     EventGroupHandle_t buttons_event = xEventGroupCreate();
-    //! Cola que tiene el estado actual
-    QueueHandle_t state_queue = xQueueCreate(1, STATE_SIZE);
+    EventGroupHandle_t other_event = xEventGroupCreate();
     //! Mutex para uso del display
     SemaphoreHandle_t display_mutex = xSemaphoreCreateMutex();
+    SemaphoreHandle_t clock_mutex = xSemaphoreCreateMutex();
     BaseType_t result;
 
-    if (buttons_event && state_queue && display_mutex) {
+    if (buttons_event && display_mutex) {
         button_task_arg_p button_args = malloc(sizeof(*button_args));
         button_args->event_group = buttons_event;
-        button_args->event_bit = ACCEPT_EVENT;
+        button_args->push_event = ACCEPT_EVENT;
+        button_args->hold_event = HOLD_ACCEPT_EVENT;
         button_args->button = shield->accept;
+        button_args->hold_time = 3000;
         result = xTaskCreate(ButtonTask, "Accept", BUTTON_TASK_STACK_SIZE, button_args, BUTTON_TASK_PRIOTIRY, NULL);
     }
     if (buttons_event != NULL) {
         button_task_arg_p button_args = malloc(sizeof(*button_args));
         button_args->event_group = buttons_event;
-        button_args->event_bit = CANCEL_EVENT;
+        button_args->push_event = CANCEL_EVENT;
+        button_args->hold_event = HOLD_CANCEL_EVENT;
         button_args->button = shield->cancel;
+        button_args->hold_time = 3000;
         result = xTaskCreate(ButtonTask, "Cancel", BUTTON_TASK_STACK_SIZE, button_args, BUTTON_TASK_PRIOTIRY, NULL);
     }
     if (buttons_event != NULL) {
         button_task_arg_p button_args = malloc(sizeof(*button_args));
         button_args->event_group = buttons_event;
-        button_args->event_bit = SET_TIME_EVENT;
+        button_args->push_event = SET_TIME_EVENT;
+        button_args->hold_event = HOLD_SET_TIME_EVENT;
         button_args->button = shield->set_time;
+        button_args->hold_time = 3000;
         result = xTaskCreate(ButtonTask, "SetTime", BUTTON_TASK_STACK_SIZE, button_args, BUTTON_TASK_PRIOTIRY, NULL);
     }
     if (buttons_event != NULL) {
         button_task_arg_p button_args = malloc(sizeof(*button_args));
         button_args->event_group = buttons_event;
-        button_args->event_bit = SET_ALARM_EVENT;
+        button_args->push_event = SET_ALARM_EVENT;
+        button_args->hold_event = HOLD_SET_ALARM_EVENT;
         button_args->button = shield->set_alarm;
+        button_args->hold_time = 3000;
         result = xTaskCreate(ButtonTask, "SetAlarm", BUTTON_TASK_STACK_SIZE, button_args, BUTTON_TASK_PRIOTIRY, NULL);
     }
     if (buttons_event != NULL) {
         button_task_arg_p button_args = malloc(sizeof(*button_args));
         button_args->event_group = buttons_event;
-        button_args->event_bit = INCREMENT_EVENT;
+        button_args->push_event = INCREMENT_EVENT;
+        button_args->hold_event = HOLD_INCREMENT_EVENT;
         button_args->button = shield->incremet;
+        button_args->hold_time = 3000;
         result = xTaskCreate(ButtonTask, "Increment", BUTTON_TASK_STACK_SIZE, button_args, BUTTON_TASK_PRIOTIRY, NULL);
     }
     if (buttons_event != NULL) {
         button_task_arg_p button_args = malloc(sizeof(*button_args));
         button_args->event_group = buttons_event;
-        button_args->event_bit = DECREMENT_EVENT;
+        button_args->push_event = DECREMENT_EVENT;
+        button_args->hold_event = HOLD_DECREMENT_EVENT;
         button_args->button = shield->decrement;
+        button_args->hold_time = 3000;
         result = xTaskCreate(ButtonTask, "Decrement", BUTTON_TASK_STACK_SIZE, button_args, BUTTON_TASK_PRIOTIRY, NULL);
     }
     if (result == pdPASS) {
         state_task_arg_p state_args = malloc(sizeof(*state_args));
-        state_args->state_queue = state_queue;
+        state_args->display_mutex = display_mutex;
         state_args->buttons_event_group = buttons_event;
-        state_args->accept_event = ACCEPT_EVENT;
-        state_args->cancel_event = CANCEL_EVENT;
-        state_args->decrement_event = DECREMENT_EVENT;
-        state_args->increment_event = INCREMENT_EVENT;
-        state_args->set_alarm_event = SET_ALARM_EVENT;
-        state_args->set_time_event = SET_TIME_EVENT;
+        state_args->buttons_event_group = other_event;
+        // No le paso los eventos, estan en config
         state_args->buzzer = shield->buzzer;
         state_args->display = shield->display;
+        state_args->clock = clock;
         result = xTaskCreate(StateTask, "States", STATE_TASK_STACK_SIZE, state_args, tskIDLE_PRIORITY + 2, NULL);
     }
     if (result == pdPASS) {
@@ -284,12 +216,24 @@ int main(void) {
                              tskIDLE_PRIORITY + 9, NULL);
     }
     if (result == pdPASS) {
-        change_state_task_arg_p change_states_args = malloc(sizeof(*change_states_args));
-        change_states_args->state_queue = state_queue;
-        change_states_args->display_mutex = display_mutex;
-        change_states_args->display = shield->display;
-        result = xTaskCreate(ShowStateTask, "ShowState", SHOW_STATE_TASK_STACK_SIZE, shield->display,
-                             tskIDLE_PRIORITY + 3, NULL);
+        clock_tick_task_arg_p clock_args = malloc(sizeof(*clock_args));
+        clock_args->clock = clock;
+        clock_args->clock_mutex = clock_mutex;
+        clock_args->event_group = other_event;
+        clock_args->second_event = SECOND_EVENT;
+        result = xTaskCreate(ClockTickTask, "ClockTick", CLOCK_TICK_TASK_STACK_SIZE, clock_args, tskIDLE_PRIORITY + 10,
+                             NULL);
+    }
+    if (result == pdPASS) {
+        write_time_task_arg_p write_time_args = malloc(sizeof(*write_time_args));
+        write_time_args->clock = clock;
+        write_time_args->clock_mutex = clock_mutex;
+        write_time_args->display = shield->display;
+        write_time_args->event_group = other_event;
+        write_time_args->second_event = SECOND_EVENT;
+        write_time_args->write_flag = WRITE_FLAG;
+        result = xTaskCreate(WriteTime, "WriteTime", WRITE_TIME_TASK_STACK_SIZE, write_time_args, tskIDLE_PRIORITY + 3,
+                             NULL);
     }
 
     vTaskStartScheduler();

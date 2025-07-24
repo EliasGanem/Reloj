@@ -17,18 +17,22 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 SPDX-License-Identifier: MIT
 *********************************************************************************************************************/
 
-/** @file button_task.c
- ** @brief Definiciones de la biblioteca para la gestión de los botones - Electrónica 4 2025
+/** @file clock_tick_task.c
+ ** @brief Definiciones de la biblioteca que se encarga de hacer el tick de reloj y escribir la hora actual -
+ *Electrónica 4 2025
  **/
 
 /* === Headers files inclusions ==================================================================================== */
 
-#include "button_task.h"
+#include "FreeRTOS.h"
 #include "task.h"
+
+#include "config.h"
+#include "clock_tick_task.h"
 
 /* === Macros definitions ========================================================================================== */
 
-#define BUTTON_SCAN_DELAY 20
+#define ButtonScanDelay 15
 
 /* === Private data type declarations ============================================================================== */
 
@@ -42,39 +46,28 @@ SPDX-License-Identifier: MIT
 
 /* === Public function definitions ================================================================================= */
 
-void ButtonTask(void * pointer) {
-    button_task_arg_p args = pointer;
+void ClockTickTask(void * pointer) {
+    clock_tick_task_arg_p args = pointer;
     TickType_t last_value;
-
-    if (args->hold_time <= BUTTON_SCAN_DELAY) {
-        args->hold_time = 100 * BUTTON_SCAN_DELAY;
-    } else {
-        args->hold_time = args->hold_time / BUTTON_SCAN_DELAY;
-    }
-
-    args->time_counter = 0;
+    args->ms_counter = 0;
 
     while (1) {
         last_value = xTaskGetTickCount();
 
-        if (DigitalInputGetIsActive(args->button)) {
-            if (args->time_counter < args->hold_time) {
-                args->time_counter++;
-                if (args->time_counter == args->hold_time) {
-                    args->time_counter = args->hold_time + 1; // esto indica que está presionado
-                    xEventGroupSetBits(args->event_group, args->hold_event);
-                }
-            }
-        } else if (0 < args->time_counter && args->time_counter < args->hold_time) { // solto antes del hold_time
-            args->time_counter = 0;
-            xEventGroupSetBits(args->event_group, args->push_event);
-        } else if (args->time_counter > args->hold_time) { // evita que tome un push inmediatamente despues de un hold
-            args->time_counter = 0;
+        xSemaphoreTake(args->clock_mutex, 0);
+        ClockNewTick(args->clock);
+        xSemaphoreGive(args->clock);
+
+        // Genero un evento cada 1s
+        if (args->ms_counter < 1000) {
+            args->ms_counter++;
+        } else {
+            args->ms_counter = 0;
+            xEventGroupSetBits(args->event_group, args->second_event);
         }
 
-        vTaskDelayUntil(&last_value, pdMS_TO_TICKS(BUTTON_SCAN_DELAY));
+        vTaskDelayUntil(&last_value, pdMS_TO_TICKS(1))
     }
 }
 
-/* === End of documentation ========================================================================================
- */
+/* === End of documentation ======================================================================================== */

@@ -38,15 +38,6 @@ extern "C" {
 
 /* === Public macros definitions =================================================================================== */
 
-#define BUTTONS_EVENT_BUTTON_0 (1 << 0)
-#define BUTTONS_EVENT_BUTTON_1 (1 << 1)
-#define BUTTONS_EVENT_BUTTON_2 (1 << 2)
-#define BUTTONS_EVENT_BUTTON_3 (1 << 3)
-#define BUTTONS_EVENT_BUTTON_4 (1 << 4)
-#define BUTTONS_EVENT_BUTTON_5 (1 << 5)
-#define BUTTONS_EVENT_BUTTON_6 (1 << 6)
-#define BUTTONS_EVENT_BUTTON_7 (1 << 7)
-
 #define BUTTON_TASK_STACK_SIZE (configMINIMAL_STACK_SIZE)
 
 /* === Public data type declarations =============================================================================== */
@@ -54,7 +45,10 @@ extern "C" {
 typedef struct button_task_arg_s {
     digital_input_p button;
     EventGroupHandle_t event_group;
-    int event_bit;
+    int push_event;
+    int hold_event;
+    int hold_time;
+    int time_counter;
 } * button_task_arg_p;
 
 /* === Public variable declarations ================================================================================ */

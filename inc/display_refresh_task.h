@@ -17,18 +17,20 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 SPDX-License-Identifier: MIT
 *********************************************************************************************************************/
 
-#ifndef SHOW_H_
-#define SHOW_H_
+#ifndef DISPLAY_REFRES_TASK_H_
+#define DISPLAY_REFRES_TASK_H_
 
-/** @file show.h
- ** @brief Declaraciones de la biblioteca para determinar que mostrar - Electrónica 4 2025
+/** @file display_refresh_task.h
+ ** @brief Declaraciones de la biblioteca para la tarea del refresco de pantalla - Electrónica 4 2025
  **/
 
 /* === Headers files inclusions ==================================================================================== */
 
-#include "queue.h"
 #include "semphr.h"
+#include "event_groups.h"
+
 #include "display.h"
+#include "clock.h"
 
 /* === Header for C++ compatibility ================================================================================ */
 
@@ -39,7 +41,7 @@ extern "C" {
 /* === Public macros definitions =================================================================================== */
 
 #define DISPLAY_REFRESH_TASK_STACK_SIZE (configMINIMAL_STACK_SIZE)
-#define SHOW_STATE_TASK_STACK_SIZE      (10 * configMINIMAL_STACK_SIZE)
+#define WRITE_TIME_TASK_STACK_SIZE      (configMINIMAL_STACK_SIZE)
 
 /* === Public data type declarations =============================================================================== */
 
@@ -48,11 +50,16 @@ typedef struct display_refresh_task_arg_s {
     display_p display;
 } * display_refresh_task_arg_p;
 
-typedef struct change_state_task_arg_s {
-    QueueHandle_t state_queue;
+typedef struct write_time_task_arg_s {
     SemaphoreHandle_t display_mutex;
+    SemaphoreHandle_t clock_mutex;
     display_p display;
-} * change_state_task_arg_p;
+    EventGroupHandle_t event_group;
+    int second_event;
+    int write_flag;
+    clock_p clock;
+    clock_time_u current_time;
+} * write_time_task_arg_p;
 
 /* === Public variable declarations ================================================================================ */
 
@@ -60,7 +67,7 @@ typedef struct change_state_task_arg_s {
 
 void DisplayRefreshTask(void * arguments);
 
-void ShowStateTask(void * pointer);
+void WriteTime(void * arguments);
 
 /* === End of conditional blocks =================================================================================== */
 
@@ -68,4 +75,4 @@ void ShowStateTask(void * pointer);
 }
 #endif
 
-#endif /* SHOW_H_ */
+#endif /* DISPLAY_REFRES_TASK_H_ */

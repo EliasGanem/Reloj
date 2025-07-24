@@ -24,9 +24,9 @@ SPDX-License-Identifier: MIT
 /* === Headers files inclusions ==================================================================================== */
 
 #include "FreeRTOS.h"
-#include "show.h"
+
+#include "display_refresh_task.h"
 #include "config.h"
-#include "clock.h"
 
 /* === Macros definitions ========================================================================================== */
 
@@ -56,38 +56,21 @@ void DisplayRefreshTask(void * pointer) {
     }
 }
 
-void ShowStateTask(void * pointer) {
-    change_state_task_arg_p args = pointer;
-    int state = 0;
-
-    clock_time_u value_1 = {
-        .time = {.hours = {0, 3}, .minutes = {0, 2}, .seconds = {0, 1}},
-    };
-    clock_time_u value_2 = {
-        .time = {.hours = {0, 3}, .minutes = {0, 2}, .seconds = {0, 2}},
-    };
+void WriteTime(void * pointer) {
+    write_time_task_arg_p args = pointer;
+    EventBits_t events;
 
     while (1) {
-        xQueueReceive(args->state_queue, &state, portMAX_DELAY);
-        xSemaphoreTake(args->display_mutex, portMAX_DELAY);
-
-        switch (state) {
-        case INVALID_TIME_STATE:
-            DisplayWriteBCD(args->display, value_1.bcd, DISPLAY_MAX_DIGITS);
-            DisplayBlinkingDigits(args->display, 0, 3, 50);
-            DisplayDot(args->display, 0, false, 0);
-            DisplayDot(args->display, 1, false, 0);
-            DisplayDot(args->display, 2, true, 50);
-            DisplayDot(args->display, 3, false, 0);
-            break;
-        case VALID_TIME_STATE:
-            DisplayWriteBCD(args->display, value_2.bcd, DISPLAY_MAX_DIGITS);
-            DisplayBlinkingDigits(args->display, 0, 3, 0);
-            break;
-        default:
-            break;
-        }
-        xSemaphoreGive(args->display_mutex);
+        events = xEventGroupWaitBits(args->event_group, SECOND_EVENT, pdTRUE, pdFALSE, portMAX_DELAY);
+        // if de si se peude escribir el tiempo osea si esta en valido o en invaliddo
+        // xSemaphoreTake(args->display_mutex, portMAX_DELAY);
+        // xSemaphoreTake(args->clock_mutex, portMAX_DELAY);
+        // if (events & (SECOND_EVENT | WRITE_FLAG)) {
+        ClockGetTime(args->clock, &args->current_time);
+        DisplayWriteBCD(args->display, args->current_time.bcd, DISPLAY_MAX_DIGITS);
+        // }
+        // xSemaphoreGive(args->clock_mutex);
+        //  xSemaphoreGive(args->display_mutex);
     }
 }
 

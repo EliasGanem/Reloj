@@ -17,11 +17,11 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 SPDX-License-Identifier: MIT
 *********************************************************************************************************************/
 
-#ifndef STATE_TASK_H_
-#define STATE_TASK_H_
+#ifndef CLOCK_TICK_TASK_H_
+#define CLOCK_TICK_TASK_H_
 
-/** @file state_task.h
- ** @brief Declaraciones de la biblioteca para la gestión de estados - Electrónica 4 2025
+/** @file show.h
+ ** @brief Declaraciones de la biblioteca para realizar el tick del reloj y escribir la hora - Electrónica 4 2025
  **/
 
 /* === Headers files inclusions ==================================================================================== */
@@ -29,9 +29,6 @@ SPDX-License-Identifier: MIT
 #include "event_groups.h"
 #include "semphr.h"
 
-#include <stdint.h>
-#include "digital_output.h"
-#include "display.h"
 #include "clock.h"
 
 /* === Header for C++ compatibility ================================================================================ */
@@ -42,36 +39,23 @@ extern "C" {
 
 /* === Public macros definitions =================================================================================== */
 
-#define STATE_TASK_STACK_SIZE (configMINIMAL_STACK_SIZE)
-
-#define STATE_SIZE            sizeof(int)
+#define CLOCK_TICK_TASK_STACK_SIZE (configMINIMAL_STACK_SIZE)
 
 /* === Public data type declarations =============================================================================== */
 
-typedef enum {
-    invalid_time,
-    valid_time,
-    adjust_time_hours,
-    adjust_time_minutes,
-    adjust_alarm_hours,
-    adjust_alarm_minutes,
-} states_e;
-
-typedef struct state_task_arg_s {
-    SemaphoreHandle_t display_mutex;
-    EventGroupHandle_t buttons_event_group;
-    EventGroupHandle_t other_event_group;
-    digital_output_p buzzer;
-    display_p display;
+typedef struct clock_tick_task_arg_s {
+    SemaphoreHandle_t clock_mutex;
+    EventGroupHandle_t event_group;
+    int second_event;
+    int ms_counter;
     clock_p clock;
-    clock_time_u new_time;
-} * state_task_arg_p;
+} * clock_tick_task_arg_p;
 
 /* === Public variable declarations ================================================================================ */
 
 /* === Public function declarations ================================================================================ */
 
-void StateTask(void * arguments);
+void ClockTickTask(void * arguments);
 
 /* === End of conditional blocks =================================================================================== */
 
@@ -79,4 +63,4 @@ void StateTask(void * arguments);
 }
 #endif
 
-#endif /* STATE_TASK_H_ */
+#endif /* CLOCK_TICK_TASK_H_ */

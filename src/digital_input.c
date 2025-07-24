@@ -144,7 +144,7 @@ digital_input_changes_t DigitalInputWasChanged(digital_input_p self) {
 
 bool DigitalInputWasActivated(digital_input_p self) {
     bool result = false;
-    if (self->laststate = 1) {
+    if (self->laststate == 1) {
         result = true;
     }
     return result;
@@ -152,7 +152,7 @@ bool DigitalInputWasActivated(digital_input_p self) {
 
 bool DigitalInputWasDeactivated(digital_input_p self) {
     bool result = false;
-    if (self->laststate = 0) {
+    if (self->laststate == 0) {
         result = true;
     }
     return result;

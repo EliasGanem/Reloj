@@ -225,8 +225,9 @@ static void UpdateSegments(uint8_t segments) {
 shield_p ShieldCreate(void) {
     struct shield_s * self = NULL;
 
-    BoardSetup();
-    BoardSetup();
+    // BoardSetup();
+    // BoardSetup();
+    SystemCoreClockUpdate();
 
 #ifdef SHIELD_MAX_INSTANCE
     self = malloc(sizeof(struct shield_s));
