@@ -67,7 +67,8 @@ digital_input_p DigitalInputCreate(uint8_t port, uint32_t pin, bool inverted);
  * @brief Funcion para preguntarle a la entrada digital si está activa
  *
  * Se encarga de la logica negada, devuelve uno si se considera un estado activo. Ademas lee por primera vez la entrada
- * para usarla como el ultimo estado
+ * para usarla como el ultimo estado.
+ * Actualiza el ultimo estado.
  *
  * @param input Referencia a la entrada digital
  * @return true Si la entrada esta activa
@@ -77,6 +78,8 @@ bool DigitalInputGetIsActive(digital_input_p input);
 
 /**
  * @brief Funcion para preguntarle a la entrada digital si su estado anterior era activado
+ *
+ * Ademas actualiza el ultimo estado
  *
  * @param input Referencia a la entrada digital
  * @return true Si el estado anterior de la entrada digital era activado
@@ -96,10 +99,13 @@ bool DigitalInputWasDeactivated(digital_input_p input);
 /**
  * @brief Funcion para preguntarle a la entrada digital si cambió
  *
- * Devuelve....
+ * Devuelve el estado anterior del pulsador
  *
  * @param input
- * @return digital_input_changes_t Respuesta
+ * @return digital_input_changes_t
+ * \li 1 si el estado anterior era activado
+ * \li 0 si no cambio
+ * \li -1 si el estado anterior era desactivado
  */
 digital_input_changes_t DigitalInputWasChanged(digital_input_p input);
 

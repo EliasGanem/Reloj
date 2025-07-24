@@ -116,17 +116,25 @@ bool DigitalInputGetIsActive(digital_input_p self) {
     if (self->inverted) {
         state = !state;
     }
+    self->laststate = state;
     return state;
 }
 
 digital_input_changes_t DigitalInputWasChanged(digital_input_p self) {
     digital_input_changes_t result = DIGITAL_INPUT_NO_CHANGE;
-
-    bool state = DigitalInputGetIsActive(self);
+    // Obtiene el estado del pin
+    bool state = false;
+    if (Chip_GPIO_ReadPortBit(LPC_GPIO_PORT, self->port, self->pin) != 0) {
+        state = true;
+    }
+    if (self->inverted) {
+        state = !state;
+    }
+    // Verfica el cambio
     if (!self->laststate && state) {
-        result = DIGITAL_INPUT_WAS_ACTIVATED;
-    } else if (self->laststate && !state) {
         result = DIGITAL_INPUT_WAS_DEACTIVATED;
+    } else if (self->laststate && !state) {
+        result = DIGITAL_INPUT_WAS_ACTIVATED;
     }
 
     self->laststate = state;
@@ -135,11 +143,19 @@ digital_input_changes_t DigitalInputWasChanged(digital_input_p self) {
 }
 
 bool DigitalInputWasActivated(digital_input_p self) {
-    return DIGITAL_INPUT_WAS_ACTIVATED == DigitalInputWasChanged(self);
+    bool result = false;
+    if (self->laststate = 1) {
+        result = true;
+    }
+    return result;
 }
 
 bool DigitalInputWasDeactivated(digital_input_p self) {
-    return DIGITAL_INPUT_WAS_DEACTIVATED == DigitalInputWasChanged(self);
+    bool result = false;
+    if (self->laststate = 0) {
+        result = true;
+    }
+    return result;
 }
 
 /* === End of documentation ======================================================================================== */
