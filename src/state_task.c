@@ -261,10 +261,10 @@ void StateTask(void * pointer) {
             } else if (events & ACCEPT_EVENT) {
                 ChangeState(args, adjust_time_hours);
             } else if (events & CANCEL_EVENT) {
-                // CanceledAdjustTime(args);
+                CanceledAdjustTime(args);
             }
 
-            // DisplayWriteBCD(args->display, &args->new_time.bcd[2], sizeof(args->new_time.bcd));
+            DisplayWriteBCD(args->display, &args->new_time.bcd[2], sizeof(args->new_time.bcd));
 
             // if (Passed30s()) {
             //     CanceledAdjustTime(shield, clock);
@@ -272,16 +272,20 @@ void StateTask(void * pointer) {
             break;
 
         case adjust_time_hours:
-            // if (events & INCREMENT_EVENT) {
-            //     IncrementControl(&args->new_time.bcd[4], hours_limit, 2);
-            // } else if (events & DECREMENT_EVENT) {
-            //     DecrementControl(&args->new_time.bcd[4], hours_limit, 2);
-            // } else if (events & CANCEL_EVENT) {
-            //     CanceledAdjustTime(args);
-            // } else if (events & ACCEPT_EVENT) {
-            //     CanceledAdjustTime(args);
-            // }
-            // DisplayWriteBCD(args->display, &args->new_time.bcd[2], sizeof(args->new_time.bcd));
+            if (events & INCREMENT_EVENT) {
+                IncrementControl(&args->new_time.bcd[4], hours_limit, 2);
+            } else if (events & DECREMENT_EVENT) {
+                DecrementControl(&args->new_time.bcd[4], hours_limit, 2);
+            } else if (events & CANCEL_EVENT) {
+                CanceledAdjustTime(args);
+            } else if (events & ACCEPT_EVENT) {
+                if (ClockSetTime(args->clock, &args->new_time)) {
+                    ChangeState(args, valid_time);
+                } else {
+                    ChangeState(args, invalid_time);
+                }
+            }
+            DisplayWriteBCD(args->display, &args->new_time.bcd[2], sizeof(args->new_time.bcd));
 
             // if (Passed30s()) {
             //     CanceledAdjustTime(shield, clock);
