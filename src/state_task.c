@@ -206,14 +206,6 @@ void StateTask(void * pointer) {
         //! espero un evento ¿Que passa si llegan 2 eventos? ademas events no es propia de la tarea hay reentrancia
         events = xEventGroupWaitBits(args->buttons_event_group, BUTTONS_EVENT, pdTRUE, pdFALSE, portMAX_DELAY);
 
-        // if (events & DIDNT_PRESS_EVENT) {
-        //     if (ClockGetTime(args->clock, &args->new_time)) {
-        //         ChangeState(args, valid_time);
-        //     } else {
-        //         ChangeState(args, invalid_time);
-        //     }
-        // }
-
         switch (args->state) {
         case invalid_time:
             if (events & HOLD_SET_TIME_EVENT) {
@@ -221,37 +213,38 @@ void StateTask(void * pointer) {
                 ClockGetTime(args->clock, &args->new_time);
             }
             break;
-            //  case valid_time:
-            //      if (KeepedHoldButton(set_time)) {
-            //          ChangeState(shield, adjust_time_minutes);
-            //          ClockGetTime(clock, &new_time);
-            //      } else if (KeepedHoldButton(set_alarm)) {
-            //          ChangeState(shield, adjust_alarm_minutes);
-            //          ClockGetAlarm(clock, &new_time);
-            //          new_time.bcd[0] = 0; // Para que los segundos no afecten la alarma
-            //          new_time.bcd[1] = 0; // Para que los segundos no afecten la alarma
-            //      } else if (ClockIsAlarmRinging(clock)) {
-            //          if (DigitalInputWasActivated(shield->cancel)) {
-            //              ClockTurnOffAlarm(clock);
-            //              ChangeState(shield, valid_time);
-            //          } else if (DigitalInputWasActivated(shield->accept)) {
-            //              ClockSnoozeAlarm(clock);
-            //              ChangeState(shield, valid_time);
-            //          }
-            //          ChangeState(shield, valid_time); // para activar el punto del 1er digito
-            //      } else if (ClockGetAlarm(clock, &new_time)) {
-            //          if (!ClockIsAlarmSnoozed(clock)) {
-            //              if (DigitalInputWasActivated(shield->accept)) {
-            //                  ClockSetAlarmState(clock, true);
-            //                  ChangeState(shield, valid_time);
-            //              } else if (DigitalInputWasActivated(shield->cancel)) {
-            //                  ClockSetAlarmState(clock, false);
-            //                  ChangeState(shield, valid_time);
-            //              }
-            //          }
-            //      }
+        case valid_time:
+            if (events & HOLD_SET_TIME_EVENT) {
+                ChangeState(args, adjust_time_minutes);
+                ClockGetTime(args->clock, &args->new_time);
+            } else if (events & HOLD_SET_ALARM_EVENT) {
+                ChangeState(args, adjust_alarm_minutes);
+                ClockGetAlarm(args->clock, &args->new_time);
+                args->new_time.bcd[0] = 0; // Para que los segundos no afecten la alarma
+                args->new_time.bcd[1] = 0; // Para que los segundos no afecten la alarma
+                DisplayWriteBCD(args->display, &args->new_time.bcd[2], sizeof(args->new_time.bcd));
+            } else if (ClockIsAlarmRinging(args->clock)) {
+                if (events & CANCEL_EVENT) {
+                    ClockTurnOffAlarm(args->clock);
+                    ChangeState(args, valid_time);
+                } else if (events & ACCEPT_EVENT) {
+                    ClockSnoozeAlarm(args->clock);
+                    ChangeState(args, valid_time);
+                }
+                ChangeState(args, valid_time); // para activar el punto del 1er digito
+            } else if (ClockGetAlarm(args->clock, &args->new_time)) {
+                if (!ClockIsAlarmSnoozed(args->clock)) {
+                    if (events & ACCEPT_EVENT) {
+                        ClockSetAlarmState(args->clock, true);
+                        ChangeState(args, valid_time);
+                    } else if (events & CANCEL_EVENT) {
+                        ClockSetAlarmState(args->clock, false);
+                        ChangeState(args, valid_time);
+                    }
+                }
+            }
 
-            //     break;
+            break;
 
         case adjust_time_minutes:
             if (events & INCREMENT_EVENT) {
@@ -292,44 +285,44 @@ void StateTask(void * pointer) {
             // }
             break;
 
-            // case adjust_alarm_minutes:
-            //     if (DigitalInputWasActivated(shield->incremet)) {
-            //         IncrementControl(&new_time.bcd[2], minutes_limit, 2);
-            //     } else if (DigitalInputWasActivated(shield->decrement)) {
-            //         DecrementControl(&new_time.bcd[2], minutes_limit, 2);
-            //     } else if (DigitalInputWasActivated(shield->accept)) {
-            //         ChangeState(shield, adjust_alarm_hours);
-            //     } else if (DigitalInputWasActivated(shield->cancel)) {
-            //         ChangeState(shield, valid_time);
-            //     }
+        case adjust_alarm_minutes:
+            if (events & INCREMENT_EVENT) {
+                IncrementControl(&args->new_time.bcd[2], minutes_limit, 2);
+            } else if (events & DECREMENT_EVENT) {
+                DecrementControl(&args->new_time.bcd[2], minutes_limit, 2);
+            } else if (events & ACCEPT_EVENT) {
+                ChangeState(args, adjust_alarm_hours);
+            } else if (events & CANCEL_EVENT) {
+                ChangeState(args, valid_time);
+            }
 
-            //     DisplayWriteBCD(shield->display, &new_time.bcd[2], sizeof(new_time.bcd));
+            DisplayWriteBCD(args->display, &args->new_time.bcd[2], sizeof(args->new_time.bcd));
 
-            //     if (Passed30s()) {
-            //         ChangeState(shield, valid_time);
-            //     }
-            //     break;
+            // if (Passed30s()) {
+            //     ChangeState(shield, valid_time);
+            // }
+            break;
 
-            // case adjust_alarm_hours:
-            //     if (DigitalInputWasActivated(shield->incremet)) {
-            //         IncrementControl(&new_time.bcd[4], hours_limit, 2);
-            //     } else if (DigitalInputWasActivated(shield->decrement)) {
-            //         DecrementControl(&new_time.bcd[4], hours_limit, 2);
-            //     } else if (DigitalInputWasActivated(shield->cancel)) {
-            //         ChangeState(shield, valid_time);
-            //     } else if (DigitalInputWasActivated(shield->accept)) {
-            //         ClockSetAlarm(clock, &new_time);
-            //         ChangeState(shield, valid_time);
-            //     }
-            //     DisplayWriteBCD(shield->display, &new_time.bcd[2], sizeof(new_time.bcd));
+        case adjust_alarm_hours:
+            if (events & INCREMENT_EVENT) {
+                IncrementControl(&args->new_time.bcd[4], hours_limit, 2);
+            } else if (events & DECREMENT_EVENT) {
+                DecrementControl(&args->new_time.bcd[4], hours_limit, 2);
+            } else if (events & CANCEL_EVENT) {
+                ChangeState(args, valid_time);
+            } else if (events & ACCEPT_EVENT) {
+                ClockSetAlarm(args->clock, &args->new_time);
+                ChangeState(args, valid_time);
+            }
+            DisplayWriteBCD(args->display, &args->new_time.bcd[2], sizeof(args->new_time.bcd));
 
-            //     if (Passed30s()) {
-            //         ChangeState(shield, valid_time);
-            //     }
-            //     break;
+            // if (Passed30s()) {
+            //     ChangeState(shield, valid_time);
+            // }
+            break;
 
-            // default:
-            //     break;
+        default:
+            break;
         }
     }
 }

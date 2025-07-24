@@ -46,7 +46,6 @@ SPDX-License-Identifier: MIT
 void ButtonTask(void * pointer) {
     button_task_arg_p args = pointer;
     TickType_t last_value;
-    int aux_30s = 0; // Contador con reentrancia, para que cualquier tarea lo use.
 
     if (args->hold_time <= BUTTON_SCAN_DELAY) {
         args->hold_time = 100 * BUTTON_SCAN_DELAY;
@@ -57,16 +56,9 @@ void ButtonTask(void * pointer) {
     args->time_counter = 0;
 
     while (1) {
-        // if (aux_30s < (5000 / BUTTON_SCAN_DELAY)) {
-        //     aux_30s++;
-        // } else {
-        //     xEventGroupSetBits(args->event_group, DIDNT_PRESS_EVENT);
-        // }
-
         last_value = xTaskGetTickCount();
 
         if (DigitalInputGetIsActive(args->button)) {
-            // aux_30s = 0;
             if (args->time_counter < args->hold_time) {
                 args->time_counter++;
                 if (args->time_counter == args->hold_time) {
