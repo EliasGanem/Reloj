@@ -22,6 +22,7 @@
 #define HOLD_SET_TIME_EVENT             (1 << 9)
 #define SET_ALARM_EVENT                 (1 << 10)
 #define HOLD_SET_ALARM_EVENT            (1 << 11)
+#define DIDNT_PRESS_EVENT               (1 << 12)
 
 #define PUSH_BUTTONS_EVENT                                                                                             \
     ACCEPT_EVENT | CANCEL_EVENT | DECREMENT_EVENT | INCREMENT_EVENT | SET_TIME_EVENT | SET_ALARM_EVENT
@@ -31,7 +32,7 @@
 #define BUTTONS_EVENT                                                                                                  \
     ACCEPT_EVENT | HOLD_ACCEPT_EVENT | CANCEL_EVENT | HOLD_CANCEL_EVENT | DECREMENT_EVENT | HOLD_DECREMENT_EVENT |     \
         INCREMENT_EVENT | HOLD_INCREMENT_EVENT | SET_TIME_EVENT | HOLD_SET_TIME_EVENT | SET_ALARM_EVENT |              \
-        HOLD_SET_ALARM_EVENT
+        HOLD_SET_ALARM_EVENT | DIDNT_PRESS_EVENT
 
 #define SECOND_EVENT (1 << 0)
 #define WRITE_FLAG   (1 << 1)

@@ -30,7 +30,7 @@ SPDX-License-Identifier: MIT
 #include "semphr.h"
 
 #include "clock.h"
-
+#include "digital_output.h"
 /* === Header for C++ compatibility ================================================================================ */
 
 #ifdef __cplusplus
@@ -49,6 +49,7 @@ typedef struct clock_tick_task_arg_s {
     int second_event;
     int ms_counter;
     clock_p clock;
+    digital_output_p led;
 } * clock_tick_task_arg_p;
 
 /* === Public variable declarations ================================================================================ */

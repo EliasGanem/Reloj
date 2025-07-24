@@ -56,13 +56,14 @@ void ClockTickTask(void * pointer) {
 
         xSemaphoreTake(args->clock_mutex, 0);
         ClockNewTick(args->clock);
-        xSemaphoreGive(args->clock);
+        xSemaphoreGive(args->clock_mutex);
 
         // Genero un evento cada 1s
         if (args->ms_counter < 1000) {
             args->ms_counter++;
         } else {
             args->ms_counter = 0;
+            // DigitalOutputToggle(args->led);
             xEventGroupSetBits(args->event_group, args->second_event);
         }
 

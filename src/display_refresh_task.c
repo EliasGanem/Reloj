@@ -63,14 +63,15 @@ void WriteTime(void * pointer) {
     while (1) {
         events = xEventGroupWaitBits(args->event_group, SECOND_EVENT, pdTRUE, pdFALSE, portMAX_DELAY);
         // if de si se peude escribir el tiempo osea si esta en valido o en invaliddo
-        // xSemaphoreTake(args->display_mutex, portMAX_DELAY);
-        // xSemaphoreTake(args->clock_mutex, portMAX_DELAY);
-        // if (events & (SECOND_EVENT | WRITE_FLAG)) {
-        ClockGetTime(args->clock, &args->current_time);
-        DisplayWriteBCD(args->display, args->current_time.bcd, DISPLAY_MAX_DIGITS);
-        // }
-        // xSemaphoreGive(args->clock_mutex);
-        //  xSemaphoreGive(args->display_mutex);
+        if (events & WRITE_FLAG) {
+            xSemaphoreTake(args->clock_mutex, portMAX_DELAY);
+            ClockGetTime(args->clock, &args->current_time);
+            xSemaphoreGive(args->clock_mutex);
+
+            // xSemaphoreTake(args->display_mutex, portMAX_DELAY);
+            DisplayWriteBCD(args->display, &args->current_time.bcd[2], DISPLAY_MAX_DIGITS);
+            // xSemaphoreGive(args->display_mutex);
+        }
     }
 }
 

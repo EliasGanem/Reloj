@@ -38,7 +38,7 @@ SPDX-License-Identifier: MIT
 
 /* === Private function declarations =============================================================================== */
 
-static void DisplayState(display_p display, clock_p clock, states_e new_state);
+static void ChangeState(state_task_arg_p args, states_e new_state);
 
 /**
  * @brief Funcion para incrementar los digitos de un númeroo en formato array cada vez que es llamada y realiza el
@@ -70,55 +70,62 @@ static void DecrementControl(uint8_t * array, uint8_t * array_limits, int size);
 
 /* === Private function definitions ================================================================================ */
 
-static void DisplayState(display_p display, clock_p clock, states_e new_state) {
+static void ChangeState(state_task_arg_p args, states_e new_state) {
+    args->state = new_state;
     switch (new_state) {
     case invalid_time:
-        DisplayBlinkingDigits(display, 0, 3, 50);
-        DisplayDot(display, 0, false, 0);
-        DisplayDot(display, 1, false, 0);
-        DisplayDot(display, 2, true, 50);
-        DisplayDot(display, 3, false, 0);
+        xEventGroupSetBits(args->other_event_group, WRITE_FLAG);
+        DisplayBlinkingDigits(args->display, 0, 3, 50);
+        DisplayDot(args->display, 0, false, 0);
+        DisplayDot(args->display, 1, false, 0);
+        DisplayDot(args->display, 2, true, 50);
+        DisplayDot(args->display, 3, false, 0);
         break;
 
     case valid_time:
-        DisplayBlinkingDigits(display, 0, 3, 0);
-        if (ClockIsAlarmRinging(clock)) {
-            DisplayDot(display, 0, true, 0);
+        xEventGroupSetBits(args->other_event_group, WRITE_FLAG);
+        DisplayBlinkingDigits(args->display, 0, 3, 0);
+        if (ClockIsAlarmRinging(args->clock)) {
+            DisplayDot(args->display, 0, true, 0);
         } else {
-            DisplayDot(display, 0, false, 0);
+            DisplayDot(args->display, 0, false, 0);
         }
-        DisplayDot(display, 1, false, 0);
-        DisplayDot(display, 2, true, 500);
-        if (ClockIsAlarmActivated(clock)) {
-            DisplayDot(display, 3, true, 0);
+        DisplayDot(args->display, 1, false, 0);
+        DisplayDot(args->display, 2, true, 500);
+        if (ClockIsAlarmActivated(args->clock)) {
+            DisplayDot(args->display, 3, true, 0);
         } else {
-            DisplayDot(display, 3, false, 0);
+            DisplayDot(args->display, 3, false, 0);
         }
         break;
 
     case adjust_time_minutes:
-        DisplayBlinkingDigits(display, 0, 1, 50);
-        DisplayDot(display, 2, true, 0);
+        xEventGroupClearBits(args->other_event_group, WRITE_FLAG);
+        DisplayBlinkingDigits(args->display, 0, 1, 50);
+        DisplayDot(args->display, 2, true, 0);
         break;
 
     case adjust_time_hours:
-        DisplayBlinkingDigits(display, 2, 3, 50);
+        xEventGroupClearBits(args->other_event_group, WRITE_FLAG);
+        DisplayBlinkingDigits(args->display, 2, 3, 50);
         break;
 
     case adjust_alarm_minutes:
-        DisplayBlinkingDigits(display, 0, 1, 50);
-        DisplayDot(display, 0, true, 100);
-        DisplayDot(display, 1, true, 100);
-        DisplayDot(display, 2, true, 100);
-        DisplayDot(display, 3, true, 100);
+        xEventGroupClearBits(args->other_event_group, WRITE_FLAG);
+        DisplayBlinkingDigits(args->display, 0, 1, 50);
+        DisplayDot(args->display, 0, true, 100);
+        DisplayDot(args->display, 1, true, 100);
+        DisplayDot(args->display, 2, true, 100);
+        DisplayDot(args->display, 3, true, 100);
         break;
 
     case adjust_alarm_hours:
-        DisplayBlinkingDigits(display, 2, 3, 50);
-        DisplayDot(display, 0, true, 100);
-        DisplayDot(display, 1, true, 100);
-        DisplayDot(display, 2, true, 100);
-        DisplayDot(display, 3, true, 100);
+        xEventGroupClearBits(args->other_event_group, WRITE_FLAG);
+        DisplayBlinkingDigits(args->display, 2, 3, 50);
+        DisplayDot(args->display, 0, true, 100);
+        DisplayDot(args->display, 1, true, 100);
+        DisplayDot(args->display, 2, true, 100);
+        DisplayDot(args->display, 3, true, 100);
         break;
 
     default:
@@ -178,13 +185,20 @@ static void DecrementControl(uint8_t * array, uint8_t * array_limits, int size) 
     }
 }
 
+static void CanceledAdjustTime(state_task_arg_p args) {
+    if (ClockGetTime(args->clock, &args->new_time)) {
+        ChangeState(args, valid_time);
+    } else {
+        ChangeState(args, invalid_time);
+    }
+}
+
 /* === Public function definitions ================================================================================= */
 
 void StateTask(void * pointer) {
     state_task_arg_p args = pointer;
     EventBits_t events;
-    states_e state = invalid_time;
-    DisplayState(args->display, args->clock, invalid_time);
+    ChangeState(args, invalid_time);
     uint8_t minutes_limit[2] = {0, 6};
     uint8_t hours_limit[2] = {4, 2};
 
@@ -192,11 +206,18 @@ void StateTask(void * pointer) {
         //! espero un evento ¿Que passa si llegan 2 eventos? ademas events no es propia de la tarea hay reentrancia
         events = xEventGroupWaitBits(args->buttons_event_group, BUTTONS_EVENT, pdTRUE, pdFALSE, portMAX_DELAY);
 
-        switch (state) {
+        // if (events & DIDNT_PRESS_EVENT) {
+        //     if (ClockGetTime(args->clock, &args->new_time)) {
+        //         ChangeState(args, valid_time);
+        //     } else {
+        //         ChangeState(args, invalid_time);
+        //     }
+        // }
+
+        switch (args->state) {
         case invalid_time:
-            // xEventGroupSetBits(args->other_event_group, WRITE_FLAG);
             if (events & HOLD_SET_TIME_EVENT) {
-                DisplayState(args->display, args->clock, adjust_time_minutes);
+                ChangeState(args, adjust_time_minutes);
                 ClockGetTime(args->clock, &args->new_time);
             }
             break;
@@ -233,45 +254,39 @@ void StateTask(void * pointer) {
             //     break;
 
         case adjust_time_minutes:
-            // xEventGroupClearBits(args->other_event_group, WRITE_FLAG);
-            // if (events & INCREMENT_EVENT) {
-            //     IncrementControl(&args->new_time.bcd[2], minutes_limit, 2);
-            // } else if (events & DECREMENT_EVENT) {
-            //     DecrementControl(&args->new_time.bcd[2], minutes_limit, 2);
-            // } else if (events & ACCEPT_EVENT) {
-            //     DisplayState(args->display, args->clock, adjust_time_hours);
-            // } else if (events & CANCEL_EVENT) {
-            //     // CanceledAdjustTime(shield, clock);
-            // }
+            if (events & INCREMENT_EVENT) {
+                IncrementControl(&args->new_time.bcd[2], minutes_limit, 2);
+            } else if (events & DECREMENT_EVENT) {
+                DecrementControl(&args->new_time.bcd[2], minutes_limit, 2);
+            } else if (events & ACCEPT_EVENT) {
+                ChangeState(args, adjust_time_hours);
+            } else if (events & CANCEL_EVENT) {
+                // CanceledAdjustTime(args);
+            }
 
-            // DisplayWriteBCD(shield->display, &new_time.bcd[2], sizeof(new_time.bcd));
+            // DisplayWriteBCD(args->display, &args->new_time.bcd[2], sizeof(args->new_time.bcd));
 
             // if (Passed30s()) {
             //     CanceledAdjustTime(shield, clock);
             // }
             break;
 
-            // case adjust_time_hours:
-            //     if (DigitalInputWasActivated(shield->incremet)) {
-            //         IncrementControl(&new_time.bcd[4], hours_limit, 2);
-            //     } else if (DigitalInputWasActivated(shield->decrement)) {
-            //         DecrementControl(&new_time.bcd[4], hours_limit, 2);
-            //     } else if (DigitalInputWasActivated(shield->cancel)) {
-            //         CanceledAdjustTime(shield, clock);
-            //     } else if (DigitalInputWasActivated(shield->accept)) {
-            //         if (ClockSetTime(clock, &new_time)) {
-            //             ChangeState(shield, valid_time);
-            //         } else {
-            //             ChangeState(shield, invalid_time);
-            //         }
-            //         aux_30s = 0;
-            //     }
-            //     DisplayWriteBCD(shield->display, &new_time.bcd[2], sizeof(new_time.bcd));
+        case adjust_time_hours:
+            // if (events & INCREMENT_EVENT) {
+            //     IncrementControl(&args->new_time.bcd[4], hours_limit, 2);
+            // } else if (events & DECREMENT_EVENT) {
+            //     DecrementControl(&args->new_time.bcd[4], hours_limit, 2);
+            // } else if (events & CANCEL_EVENT) {
+            //     CanceledAdjustTime(args);
+            // } else if (events & ACCEPT_EVENT) {
+            //     CanceledAdjustTime(args);
+            // }
+            // DisplayWriteBCD(args->display, &args->new_time.bcd[2], sizeof(args->new_time.bcd));
 
-            //     if (Passed30s()) {
-            //         CanceledAdjustTime(shield, clock);
-            //     }
-            //     break;
+            // if (Passed30s()) {
+            //     CanceledAdjustTime(shield, clock);
+            // }
+            break;
 
             // case adjust_alarm_minutes:
             //     if (DigitalInputWasActivated(shield->incremet)) {
@@ -312,10 +327,6 @@ void StateTask(void * pointer) {
             // default:
             //     break;
         }
-
-        xSemaphoreTake(args->display_mutex, portMAX_DELAY);
-
-        xSemaphoreGive(args->display_mutex);
     }
 }
 

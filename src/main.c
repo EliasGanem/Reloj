@@ -143,7 +143,7 @@ int main(void) {
     SemaphoreHandle_t clock_mutex = xSemaphoreCreateMutex();
     BaseType_t result;
 
-    if (buttons_event && display_mutex) {
+    if (buttons_event && other_event && display_mutex && clock_mutex) {
         button_task_arg_p button_args = malloc(sizeof(*button_args));
         button_args->event_group = buttons_event;
         button_args->push_event = ACCEPT_EVENT;
@@ -201,7 +201,7 @@ int main(void) {
         state_task_arg_p state_args = malloc(sizeof(*state_args));
         state_args->display_mutex = display_mutex;
         state_args->buttons_event_group = buttons_event;
-        state_args->buttons_event_group = other_event;
+        state_args->other_event_group = other_event;
         // No le paso los eventos, estan en config
         state_args->buzzer = shield->buzzer;
         state_args->display = shield->display;
@@ -210,8 +210,8 @@ int main(void) {
     }
     if (result == pdPASS) {
         display_refresh_task_arg_p display_args = malloc(sizeof(*display_args));
-        display_args->display_mutex = display_mutex;
         display_args->display = shield->display;
+        display_args->display_mutex = display_mutex;
         result = xTaskCreate(DisplayRefreshTask, "Refresh", DISPLAY_REFRESH_TASK_STACK_SIZE, display_args,
                              tskIDLE_PRIORITY + 9, NULL);
     }
@@ -221,6 +221,7 @@ int main(void) {
         clock_args->clock_mutex = clock_mutex;
         clock_args->event_group = other_event;
         clock_args->second_event = SECOND_EVENT;
+        clock_args->led = shield->buzzer;
         result = xTaskCreate(ClockTickTask, "ClockTick", CLOCK_TICK_TASK_STACK_SIZE, clock_args, tskIDLE_PRIORITY + 10,
                              NULL);
     }

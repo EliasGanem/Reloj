@@ -65,6 +65,7 @@ typedef struct state_task_arg_s {
     display_p display;
     clock_p clock;
     clock_time_u new_time;
+    states_e state;
 } * state_task_arg_p;
 
 /* === Public variable declarations ================================================================================ */
