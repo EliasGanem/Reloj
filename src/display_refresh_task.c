@@ -68,9 +68,9 @@ void WriteTime(void * pointer) {
             ClockGetTime(args->clock, &args->current_time);
             xSemaphoreGive(args->clock_mutex);
 
-            // xSemaphoreTake(args->display_mutex, portMAX_DELAY);
+            xSemaphoreTake(args->display_mutex, portMAX_DELAY);
             DisplayWriteBCD(args->display, &args->current_time.bcd[2], DISPLAY_MAX_DIGITS);
-            // xSemaphoreGive(args->display_mutex);
+            xSemaphoreGive(args->display_mutex);
         }
     }
 }

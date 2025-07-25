@@ -58,8 +58,8 @@ void ClockTickTask(void * pointer) {
         ClockNewTick(args->clock);
         xSemaphoreGive(args->clock_mutex);
 
-        // Genero un evento cada 1s
-        if (args->ms_counter < 1000) {
+        // Genero un evento cada 0,5s
+        if (args->ms_counter < 500) {
             args->ms_counter++;
         } else {
             args->ms_counter = 0;

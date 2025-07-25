@@ -72,6 +72,7 @@ static void DecrementControl(uint8_t * array, uint8_t * array_limits, int size);
 
 static void ChangeState(state_task_arg_p args, states_e new_state) {
     args->state = new_state;
+    xSemaphoreTake(args->display_mutex, portMAX_DELAY);
     switch (new_state) {
     case invalid_time:
         xEventGroupSetBits(args->other_event_group, WRITE_FLAG);
@@ -131,6 +132,7 @@ static void ChangeState(state_task_arg_p args, states_e new_state) {
     default:
         break;
     }
+    xSemaphoreGive(args->display_mutex);
 }
 
 static void IncrementControl(uint8_t * array, uint8_t * array_limits, int size) {
@@ -222,7 +224,11 @@ void StateTask(void * pointer) {
                 ClockGetAlarm(args->clock, &args->new_time);
                 args->new_time.bcd[0] = 0; // Para que los segundos no afecten la alarma
                 args->new_time.bcd[1] = 0; // Para que los segundos no afecten la alarma
+
+                xSemaphoreTake(args->display_mutex, portMAX_DELAY);
                 DisplayWriteBCD(args->display, &args->new_time.bcd[2], sizeof(args->new_time.bcd));
+                xSemaphoreGive(args->display_mutex);
+
             } else if (ClockIsAlarmRinging(args->clock)) {
                 if (events & CANCEL_EVENT) {
                     ClockTurnOffAlarm(args->clock);
@@ -257,7 +263,9 @@ void StateTask(void * pointer) {
                 CanceledAdjustTime(args);
             }
 
+            xSemaphoreTake(args->display_mutex, portMAX_DELAY);
             DisplayWriteBCD(args->display, &args->new_time.bcd[2], sizeof(args->new_time.bcd));
+            xSemaphoreGive(args->display_mutex);
 
             if (events & DIDNT_PRESS_EVENT) {
                 CanceledAdjustTime(args);
@@ -278,7 +286,10 @@ void StateTask(void * pointer) {
                     ChangeState(args, invalid_time);
                 }
             }
+
+            xSemaphoreTake(args->display_mutex, portMAX_DELAY);
             DisplayWriteBCD(args->display, &args->new_time.bcd[2], sizeof(args->new_time.bcd));
+            xSemaphoreGive(args->display_mutex);
 
             if (events & DIDNT_PRESS_EVENT) {
                 CanceledAdjustTime(args);
@@ -296,7 +307,9 @@ void StateTask(void * pointer) {
                 ChangeState(args, valid_time);
             }
 
+            xSemaphoreTake(args->display_mutex, portMAX_DELAY);
             DisplayWriteBCD(args->display, &args->new_time.bcd[2], sizeof(args->new_time.bcd));
+            xSemaphoreGive(args->display_mutex);
 
             if (events & DIDNT_PRESS_EVENT) {
                 CanceledAdjustTime(args);
@@ -314,7 +327,10 @@ void StateTask(void * pointer) {
                 ClockSetAlarm(args->clock, &args->new_time);
                 ChangeState(args, valid_time);
             }
+
+            xSemaphoreTake(args->display_mutex, portMAX_DELAY);
             DisplayWriteBCD(args->display, &args->new_time.bcd[2], sizeof(args->new_time.bcd));
+            xSemaphoreGive(args->display_mutex);
 
             if (events & DIDNT_PRESS_EVENT) {
                 CanceledAdjustTime(args);
