@@ -17,18 +17,20 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 SPDX-License-Identifier: MIT
 *********************************************************************************************************************/
 
-#ifndef BUTTON_TASK_H_
-#define BUTTON_TASK_H_
+#ifndef DISPLAY_TASKS_H_
+#define DISPLAY_TASKS_H_
 
-/** @file button_task.h
- ** @brief Declaraciones de la biblioteca para la gestión de los botones - Electrónica 4 2025
+/** @file display_tasks.h
+ ** @brief Declaraciones de la biblioteca para la tarea del refresco de pantalla - Electrónica 4 2025
  **/
 
 /* === Headers files inclusions ==================================================================================== */
 
-#include "FreeRTOS.h"
+#include "semphr.h"
 #include "event_groups.h"
-#include "digital_input.h"
+
+#include "display.h"
+#include "clock.h"
 
 /* === Header for C++ compatibility ================================================================================ */
 
@@ -38,34 +40,45 @@ extern "C" {
 
 /* === Public macros definitions =================================================================================== */
 
-#define BUTTON_TASK_STACK_SIZE     (configMINIMAL_STACK_SIZE)
-#define DIDNT_PUSH_TASK_STACK_SIZE (configMINIMAL_STACK_SIZE)
+#define DISPLAY_REFRESH_TASK_STACK_SIZE (configMINIMAL_STACK_SIZE)
+#define WRITE_TIME_TASK_STACK_SIZE      (configMINIMAL_STACK_SIZE)
 
 /* === Public data type declarations =============================================================================== */
 
-typedef struct button_task_arg_s {
-    digital_input_p button;
-    EventGroupHandle_t event_group;
-    int push_event;
-    int hold_event;
-    int hold_time;
-    int time_counter;
-} * button_task_arg_p;
+//! Estructura que contine los argumentos de la tarea @ref DisplayRefreshTask()
+typedef struct display_refresh_task_arg_s {
+    SemaphoreHandle_t display_mutex; //!< mutex para el display
+    display_p display;               //!< referencia al objeto display
+} * display_refresh_task_arg_p;
 
-typedef struct didnt_press_task_arg_s {
-    EventGroupHandle_t event_group;
-    int buttons;
-    int time_ms;
-    int counter;
-} * didnt_press_task_arg_p;
+//! Estructura que contine los argumentos de la tarea @ref WriteTimeTask()
+typedef struct write_time_task_arg_s {
+    SemaphoreHandle_t display_mutex; //!< mutex para el uso de la memoria de video del display
+    SemaphoreHandle_t clock_mutex;   //!< mutex para el uso de cualquier varaible del reloj
+    display_p display;               //!< referencia al objeto display
+    EventGroupHandle_t event_group;  //!< grupo de eventos de los botones
+    clock_p clock;                   //!< referencia al objeto reloj
+    clock_time_u current_time;       //< variable para que cada tarea almacene una varible de hora
+} * write_time_task_arg_p;
 
 /* === Public variable declarations ================================================================================ */
 
 /* === Public function declarations ================================================================================ */
 
-void ButtonTask(void * arguments);
+/**
+ * @brief Tarea que se encarga de refrescar el display
+ *
+ * @param arguments puntero a @ref display_refresh_task_arg_s
+ */
+void DisplayRefreshTask(void * arguments);
 
-void DidntPushTask(void * arguments);
+/**
+ * @brief Tarea que actualiza la hora cada un cierto tiempo, siempre que este en los estados correspondientes
+ * (invlaido y valido)
+ *
+ * @param arguments puntero a @ref write_time_task_arg_s
+ */
+void WriteTimeTask(void * arguments);
 
 /* === End of conditional blocks =================================================================================== */
 
@@ -73,4 +86,4 @@ void DidntPushTask(void * arguments);
 }
 #endif
 
-#endif /* BUTTON_TASK_H_ */
+#endif /* DISPLAY_TASKS_H_ */

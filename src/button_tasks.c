@@ -17,20 +17,20 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 SPDX-License-Identifier: MIT
 *********************************************************************************************************************/
 
-/** @file show.c
- ** @brief Definiciones de la biblioteca para determinar que se muesta - Electrónica 4 2025
+/** @file button_tasks.c
+ ** @brief Definiciones de la biblioteca para la gestión de los botones - Electrónica 4 2025
  **/
 
 /* === Headers files inclusions ==================================================================================== */
 
-#include "FreeRTOS.h"
-
-#include "display_refresh_task.h"
+#include "button_tasks.h"
+#include "task.h"
 #include "config.h"
 
 /* === Macros definitions ========================================================================================== */
 
-#define ButtonScanDelay 15
+#define BUTTON_SCAN_DELAY     20
+#define DINDT_PUSH_SCAN_DELAY (BUTTON_SCAN_DELAY * BUTTONS_NUMBER)
 
 /* === Private data type declarations ============================================================================== */
 
@@ -44,35 +44,61 @@ SPDX-License-Identifier: MIT
 
 /* === Public function definitions ================================================================================= */
 
-void DisplayRefreshTask(void * pointer) {
-    display_refresh_task_arg_p args = pointer;
-    TickType_t last_value = xTaskGetTickCount();
+void ButtonTask(void * pointer) {
+    button_task_arg_p args = pointer;
+    TickType_t last_value;
+
+    if (args->hold_time <= BUTTON_SCAN_DELAY) {
+        args->hold_time = 100 * BUTTON_SCAN_DELAY;
+    } else {
+        args->hold_time = args->hold_time / BUTTON_SCAN_DELAY;
+    }
+
+    args->time_counter = 0;
 
     while (1) {
-        xSemaphoreTake(args->display_mutex, portMAX_DELAY);
-        DisplayRefresh(args->display);
-        xSemaphoreGive(args->display_mutex);
-        vTaskDelayUntil(&last_value, pdMS_TO_TICKS(1));
+        last_value = xTaskGetTickCount();
+
+        if (DigitalInputGetIsActive(args->button)) {
+            if (args->time_counter < args->hold_time) {
+                args->time_counter++;
+                if (args->time_counter == args->hold_time) {
+                    args->time_counter = args->hold_time + 1; // esto indica que está presionado
+                    xEventGroupSetBits(args->event_group, args->hold_event);
+                }
+            }
+        } else if (0 < args->time_counter && args->time_counter < args->hold_time) { // solto antes del hold_time
+            args->time_counter = 0;
+            xEventGroupSetBits(args->event_group, args->push_event);
+        } else if (args->time_counter > args->hold_time) { // evita que tome un push inmediatamente despues de un hold
+            args->time_counter = 0;
+        }
+
+        vTaskDelayUntil(&last_value, pdMS_TO_TICKS(BUTTON_SCAN_DELAY));
     }
 }
 
-void WriteTime(void * pointer) {
-    write_time_task_arg_p args = pointer;
+void DidntPushTask(void * pointer) {
+    didnt_prush_task_arg_p args = pointer;
     EventBits_t events;
+    args->counter = 0;
 
     while (1) {
-        events = xEventGroupWaitBits(args->event_group, SECOND_EVENT, pdTRUE, pdFALSE, portMAX_DELAY);
-        // if de si se peude escribir el tiempo osea si esta en valido o en invaliddo
-        if (events & WRITE_FLAG) {
-            xSemaphoreTake(args->clock_mutex, portMAX_DELAY);
-            ClockGetTime(args->clock, &args->current_time);
-            xSemaphoreGive(args->clock_mutex);
-
-            xSemaphoreTake(args->display_mutex, portMAX_DELAY);
-            DisplayWriteBCD(args->display, &args->current_time.bcd[2], DISPLAY_MAX_DIGITS);
-            xSemaphoreGive(args->display_mutex);
+        events = xEventGroupWaitBits(args->event_group, args->buttons, pdFALSE, pdFALSE,
+                                     pdMS_TO_TICKS(DINDT_PUSH_SCAN_DELAY));
+        if (events & args->buttons) {
+            args->counter = 0;
+        } else {
+            if (args->counter < (args->time_ms / DINDT_PUSH_SCAN_DELAY)) {
+                args->counter++;
+                if (args->counter == (args->time_ms / DINDT_PUSH_SCAN_DELAY)) {
+                    xEventGroupSetBits(args->event_group, DIDNT_PRESS_EVENT);
+                    args->counter = 0;
+                }
+            }
         }
     }
 }
 
-/* === End of documentation ======================================================================================== */
+/* === End of documentation ========================================================================================
+ */

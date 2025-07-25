@@ -51,9 +51,9 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include "button_task.h"
+#include "button_tasks.h"
 #include "state_task.h"
-#include "display_refresh_task.h"
+#include "display_tasks.h"
 #include "clock_tick_task.h"
 
 /* === Macros definitions ====================================================================== */
@@ -100,30 +100,9 @@ void TurnOffAlarm(void) {
     DigitalOutputActivate(shield->buzzer);
 }
 
-void TurnOnLedTask(void * pointer) {
-    led_task_arg_p args = pointer;
-    EventBits_t events;
-
-    while (true) {
-        //  cuando pasa el evento limpia el bit correspondiente, y espera hasta que el evento se dé
-        events = xEventGroupWaitBits(args->event_group, args->event_bit, true, false, portMAX_DELAY);
-        if (events & args->event_bit) {
-            DigitalOutputToggle(args->led);
-            vTaskDelay(pdMS_TO_TICKS(500));
-        }
-    }
-}
-
 /* === Public function implementation ========================================================= */
 
 int main(void) {
-
-    // uint32_t aux_15ms = 0;
-    // uint32_t aux_1s = 0;
-
-    // uint8_t minutes_limit[2] = {0, 6};
-    // uint8_t hours_limit[2] = {4, 2};
-
     shield = ShieldCreate();
     DigitalOutputActivate(shield->buzzer);
     uint8_t invalid[6] = {9, 9, 9, 9, 9, 9};
@@ -138,8 +117,9 @@ int main(void) {
 
     EventGroupHandle_t buttons_event = xEventGroupCreate();
     EventGroupHandle_t other_event = xEventGroupCreate();
-    //! Mutex para uso del display
+    //! Mutex para el uso de la memoria de video del display
     SemaphoreHandle_t display_mutex = xSemaphoreCreateMutex();
+    //! Mutex para el uso de las varibles del reloj
     SemaphoreHandle_t clock_mutex = xSemaphoreCreateMutex();
     BaseType_t result;
 
@@ -198,7 +178,7 @@ int main(void) {
         result = xTaskCreate(ButtonTask, "Decrement", BUTTON_TASK_STACK_SIZE, button_args, BUTTON_TASK_PRIOTIRY, NULL);
     }
     if (buttons_event != NULL) {
-        didnt_press_task_arg_p args = malloc(sizeof(*args));
+        didnt_prush_task_arg_p args = malloc(sizeof(*args));
         args->event_group = buttons_event;
         args->buttons = (PUSH_BUTTONS_EVENT | HOLD_BUTTONS_EVENT);
         args->time_ms = 30000;
@@ -230,7 +210,6 @@ int main(void) {
         clock_args->clock_mutex = clock_mutex;
         clock_args->event_group = other_event;
         clock_args->second_event = SECOND_EVENT;
-        clock_args->led = shield->buzzer;
         result = xTaskCreate(ClockTickTask, "ClockTick", CLOCK_TICK_TASK_STACK_SIZE, clock_args, tskIDLE_PRIORITY + 10,
                              NULL);
     }
@@ -241,10 +220,8 @@ int main(void) {
         write_time_args->display = shield->display;
         write_time_args->display_mutex = display_mutex;
         write_time_args->event_group = other_event;
-        write_time_args->second_event = SECOND_EVENT;
-        write_time_args->write_flag = WRITE_FLAG;
-        result = xTaskCreate(WriteTime, "WriteTime", WRITE_TIME_TASK_STACK_SIZE, write_time_args, tskIDLE_PRIORITY + 4,
-                             NULL);
+        result = xTaskCreate(WriteTimeTask, "WriteTime", WRITE_TIME_TASK_STACK_SIZE, write_time_args,
+                             tskIDLE_PRIORITY + 4, NULL);
     }
 
     vTaskStartScheduler();

@@ -48,6 +48,7 @@ extern "C" {
 
 /* === Public data type declarations =============================================================================== */
 
+//! Tipo de dato para nombrar a los estados
 typedef enum {
     invalid_time,
     valid_time,
@@ -57,22 +58,28 @@ typedef enum {
     adjust_alarm_minutes,
 } states_e;
 
+//! Estructura que contine los argumentos de la tarea @ref StateTask()
 typedef struct state_task_arg_s {
-    SemaphoreHandle_t display_mutex;
-    SemaphoreHandle_t clock_mutex;
-    EventGroupHandle_t buttons_event_group;
-    EventGroupHandle_t other_event_group;
-    digital_output_p buzzer;
-    display_p display;
-    clock_p clock;
-    clock_time_u new_time;
-    states_e state;
+    SemaphoreHandle_t display_mutex;        //!< mutex para el uso de la memoria de video del display
+    SemaphoreHandle_t clock_mutex;          //!< mutex para el uso de cualquier varible del reloj
+    EventGroupHandle_t buttons_event_group; //!< grupod de eventos de todo lo relacionado a los botones
+    EventGroupHandle_t other_event_group;   //!< grupo de eventos de otros avisos
+    digital_output_p buzzer;                //!< referencia a un objeto salida, en este caso alarma
+    display_p display;                      //!< referencia al objeto pantalla
+    clock_p clock;                          //!< referencia al onjeto reloj
+    clock_time_u new_time;                  //! variable de tiempo propia de que cada tarea
+    states_e state;                         //!< varaible para llevar el estado propia d ecada tarea
 } * state_task_arg_p;
 
 /* === Public variable declarations ================================================================================ */
 
 /* === Public function declarations ================================================================================ */
 
+/**
+ * @brief Tarea que se encarga de controlar el reloj. Cambia los estados y escribe lo que corresponde en el display.
+ *
+ * @param arguments puntero a @ref state_task_arg_s
+ */
 void StateTask(void * arguments);
 
 /* === End of conditional blocks =================================================================================== */

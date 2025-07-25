@@ -20,7 +20,7 @@ SPDX-License-Identifier: MIT
 #ifndef CLOCK_TICK_TASK_H_
 #define CLOCK_TICK_TASK_H_
 
-/** @file show.h
+/** @file clock_tick_task.h
  ** @brief Declaraciones de la biblioteca para realizar el tick del reloj y escribir la hora - Electrónica 4 2025
  **/
 
@@ -30,7 +30,7 @@ SPDX-License-Identifier: MIT
 #include "semphr.h"
 
 #include "clock.h"
-#include "digital_output.h"
+
 /* === Header for C++ compatibility ================================================================================ */
 
 #ifdef __cplusplus
@@ -43,19 +43,24 @@ extern "C" {
 
 /* === Public data type declarations =============================================================================== */
 
+//! Estructura que contine los argumentos de la tarea @ref DidntPushTask()
 typedef struct clock_tick_task_arg_s {
-    SemaphoreHandle_t clock_mutex;
-    EventGroupHandle_t event_group;
-    int second_event;
-    int ms_counter;
-    clock_p clock;
-    digital_output_p led;
+    SemaphoreHandle_t clock_mutex;  //!< mutex para el uso de cualquier variable del reloj
+    EventGroupHandle_t event_group; //!< grupo de eventos para avisar que paso una cantidad de tiempo
+    int second_event;               //!< bit de evento para avisar el paso de un segundo
+    int ms_counter;                 //!< varaible para contar milisegundos propio de la tarea
+    clock_p clock;                  //!< refercnia al objeto reloj
 } * clock_tick_task_arg_p;
 
 /* === Public variable declarations ================================================================================ */
 
 /* === Public function declarations ================================================================================ */
 
+/**
+ * @brief Tarea encargada de llamar a @ref ClockNewTick() y de generar un evento para saber que paso un segundo
+ *
+ * @param arguments puntero a @ref clock_tick_task_arg_s
+ */
 void ClockTickTask(void * arguments);
 
 /* === End of conditional blocks =================================================================================== */

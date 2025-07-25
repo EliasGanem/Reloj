@@ -17,20 +17,18 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 SPDX-License-Identifier: MIT
 *********************************************************************************************************************/
 
-#ifndef DISPLAY_REFRES_TASK_H_
-#define DISPLAY_REFRES_TASK_H_
+#ifndef BUTTON_TASKS_H_
+#define BUTTON_TASKS_H_
 
-/** @file display_refresh_task.h
- ** @brief Declaraciones de la biblioteca para la tarea del refresco de pantalla - Electrónica 4 2025
+/** @file button_tasks.h
+ ** @brief Declaraciones de la biblioteca para la gestión de los botones - Electrónica 4 2025
  **/
 
 /* === Headers files inclusions ==================================================================================== */
 
-#include "semphr.h"
+#include "FreeRTOS.h"
 #include "event_groups.h"
-
-#include "display.h"
-#include "clock.h"
+#include "digital_input.h"
 
 /* === Header for C++ compatibility ================================================================================ */
 
@@ -40,34 +38,47 @@ extern "C" {
 
 /* === Public macros definitions =================================================================================== */
 
-#define DISPLAY_REFRESH_TASK_STACK_SIZE (configMINIMAL_STACK_SIZE)
-#define WRITE_TIME_TASK_STACK_SIZE      (configMINIMAL_STACK_SIZE)
+#define BUTTON_TASK_STACK_SIZE     (configMINIMAL_STACK_SIZE)
+#define DIDNT_PUSH_TASK_STACK_SIZE (configMINIMAL_STACK_SIZE)
 
 /* === Public data type declarations =============================================================================== */
 
-typedef struct display_refresh_task_arg_s {
-    SemaphoreHandle_t display_mutex;
-    display_p display;
-} * display_refresh_task_arg_p;
+//! Estructura que contine los argumentos de la tarea @ref ButtonTask()
+typedef struct button_task_arg_s {
+    digital_input_p button;         //!< pulsador que se escanea
+    EventGroupHandle_t event_group; //!< grupo de eventos al que avisa
+    int push_event;                 //!< bit de evento que indica que se presionó el botón
+    int hold_event;                 //!< bit de evento que indica que se mantuvo presionado el botón
+    int hold_time;                  //!< timpo que hay que mantener apretado el boton en ms
+    int time_counter;               //!< contador propio de cada tarea
+} * button_task_arg_p;
 
-typedef struct write_time_task_arg_s {
-    SemaphoreHandle_t display_mutex;
-    SemaphoreHandle_t clock_mutex;
-    display_p display;
-    EventGroupHandle_t event_group;
-    int second_event;
-    int write_flag;
-    clock_p clock;
-    clock_time_u current_time;
-} * write_time_task_arg_p;
+//! Estructura que contine los argumentos de la tarea @ref DidntPushTask()
+typedef struct didnt_prush_task_arg_s {
+    EventGroupHandle_t event_group; //!< grupo de eventos al que avisa
+    int buttons; //!< conjunto de todos los bits de evento correspondiente a los pulsadores que se desea que avisen
+                 //!< cuando se pulsaron
+    int time_ms; //!< tiempo que se desea que se espere para avisar que no se presionó nada
+    int counter; //!< contador usado para llevar el tiempo, propio de la tarea
+} * didnt_prush_task_arg_p;
 
 /* === Public variable declarations ================================================================================ */
 
 /* === Public function declarations ================================================================================ */
 
-void DisplayRefreshTask(void * arguments);
+/**
+ * @brief Tarea encargada de avisar que se presionó un botón, o que se lo mantuvo presionado
+ *
+ * @param arguments puntero a @ref button_task_arg_s
+ */
+void ButtonTask(void * arguments);
 
-void WriteTime(void * arguments);
+/**
+ * @brief Tarea encargada de avisar que ningun boton se presionó
+ *
+ * @param arguments puntero a @ref didnt_prush_task_arg_s
+ */
+void DidntPushTask(void * arguments);
 
 /* === End of conditional blocks =================================================================================== */
 
@@ -75,4 +86,4 @@ void WriteTime(void * arguments);
 }
 #endif
 
-#endif /* DISPLAY_REFRES_TASK_H_ */
+#endif /* BUTTON_TASKS_H_ */

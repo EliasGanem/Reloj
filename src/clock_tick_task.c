@@ -32,8 +32,6 @@ SPDX-License-Identifier: MIT
 
 /* === Macros definitions ========================================================================================== */
 
-#define ButtonScanDelay 15
-
 /* === Private data type declarations ============================================================================== */
 
 /* === Private function declarations =============================================================================== */
@@ -63,7 +61,6 @@ void ClockTickTask(void * pointer) {
             args->ms_counter++;
         } else {
             args->ms_counter = 0;
-            // DigitalOutputToggle(args->led);
             xEventGroupSetBits(args->event_group, args->second_event);
         }
 
