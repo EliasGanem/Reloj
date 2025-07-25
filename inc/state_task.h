@@ -59,6 +59,7 @@ typedef enum {
 
 typedef struct state_task_arg_s {
     SemaphoreHandle_t display_mutex;
+    SemaphoreHandle_t clock_mutex;
     EventGroupHandle_t buttons_event_group;
     EventGroupHandle_t other_event_group;
     digital_output_p buzzer;

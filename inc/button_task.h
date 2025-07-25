@@ -38,7 +38,8 @@ extern "C" {
 
 /* === Public macros definitions =================================================================================== */
 
-#define BUTTON_TASK_STACK_SIZE (configMINIMAL_STACK_SIZE)
+#define BUTTON_TASK_STACK_SIZE     (configMINIMAL_STACK_SIZE)
+#define DIDNT_PUSH_TASK_STACK_SIZE (configMINIMAL_STACK_SIZE)
 
 /* === Public data type declarations =============================================================================== */
 
@@ -51,11 +52,20 @@ typedef struct button_task_arg_s {
     int time_counter;
 } * button_task_arg_p;
 
+typedef struct didnt_press_task_arg_s {
+    EventGroupHandle_t event_group;
+    int buttons;
+    int time_ms;
+    int counter;
+} * didnt_press_task_arg_p;
+
 /* === Public variable declarations ================================================================================ */
 
 /* === Public function declarations ================================================================================ */
 
 void ButtonTask(void * arguments);
+
+void DidntPushTask(void * arguments);
 
 /* === End of conditional blocks =================================================================================== */
 

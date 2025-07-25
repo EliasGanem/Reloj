@@ -259,9 +259,9 @@ void StateTask(void * pointer) {
 
             DisplayWriteBCD(args->display, &args->new_time.bcd[2], sizeof(args->new_time.bcd));
 
-            // if (Passed30s()) {
-            //     CanceledAdjustTime(shield, clock);
-            // }
+            if (events & DIDNT_PRESS_EVENT) {
+                CanceledAdjustTime(args);
+            }
             break;
 
         case adjust_time_hours:
@@ -280,9 +280,9 @@ void StateTask(void * pointer) {
             }
             DisplayWriteBCD(args->display, &args->new_time.bcd[2], sizeof(args->new_time.bcd));
 
-            // if (Passed30s()) {
-            //     CanceledAdjustTime(shield, clock);
-            // }
+            if (events & DIDNT_PRESS_EVENT) {
+                CanceledAdjustTime(args);
+            }
             break;
 
         case adjust_alarm_minutes:
@@ -298,9 +298,9 @@ void StateTask(void * pointer) {
 
             DisplayWriteBCD(args->display, &args->new_time.bcd[2], sizeof(args->new_time.bcd));
 
-            // if (Passed30s()) {
-            //     ChangeState(shield, valid_time);
-            // }
+            if (events & DIDNT_PRESS_EVENT) {
+                CanceledAdjustTime(args);
+            }
             break;
 
         case adjust_alarm_hours:
@@ -316,9 +316,9 @@ void StateTask(void * pointer) {
             }
             DisplayWriteBCD(args->display, &args->new_time.bcd[2], sizeof(args->new_time.bcd));
 
-            // if (Passed30s()) {
-            //     ChangeState(shield, valid_time);
-            // }
+            if (events & DIDNT_PRESS_EVENT) {
+                CanceledAdjustTime(args);
+            }
             break;
 
         default:

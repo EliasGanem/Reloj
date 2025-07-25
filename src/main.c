@@ -197,6 +197,14 @@ int main(void) {
         button_args->hold_time = 3000;
         result = xTaskCreate(ButtonTask, "Decrement", BUTTON_TASK_STACK_SIZE, button_args, BUTTON_TASK_PRIOTIRY, NULL);
     }
+    if (buttons_event != NULL) {
+        didnt_press_task_arg_p args = malloc(sizeof(*args));
+        args->event_group = buttons_event;
+        args->buttons = (PUSH_BUTTONS_EVENT | HOLD_BUTTONS_EVENT);
+        args->time_ms = 30000;
+        result =
+            xTaskCreate(DidntPushTask, "DindtPush", DIDNT_PUSH_TASK_STACK_SIZE, args, BUTTON_TASK_PRIOTIRY + 1, NULL);
+    }
     if (result == pdPASS) {
         state_task_arg_p state_args = malloc(sizeof(*state_args));
         state_args->display_mutex = display_mutex;
@@ -206,7 +214,7 @@ int main(void) {
         state_args->buzzer = shield->buzzer;
         state_args->display = shield->display;
         state_args->clock = clock;
-        result = xTaskCreate(StateTask, "States", STATE_TASK_STACK_SIZE, state_args, tskIDLE_PRIORITY + 2, NULL);
+        result = xTaskCreate(StateTask, "States", STATE_TASK_STACK_SIZE, state_args, tskIDLE_PRIORITY + 3, NULL);
     }
     if (result == pdPASS) {
         display_refresh_task_arg_p display_args = malloc(sizeof(*display_args));
@@ -230,10 +238,11 @@ int main(void) {
         write_time_args->clock = clock;
         write_time_args->clock_mutex = clock_mutex;
         write_time_args->display = shield->display;
+        write_time_args->display_mutex = display_mutex;
         write_time_args->event_group = other_event;
         write_time_args->second_event = SECOND_EVENT;
         write_time_args->write_flag = WRITE_FLAG;
-        result = xTaskCreate(WriteTime, "WriteTime", WRITE_TIME_TASK_STACK_SIZE, write_time_args, tskIDLE_PRIORITY + 3,
+        result = xTaskCreate(WriteTime, "WriteTime", WRITE_TIME_TASK_STACK_SIZE, write_time_args, tskIDLE_PRIORITY + 4,
                              NULL);
     }
 

@@ -29,7 +29,8 @@ SPDX-License-Identifier: MIT
 
 /* === Macros definitions ========================================================================================== */
 
-#define BUTTON_SCAN_DELAY 20
+#define BUTTON_SCAN_DELAY     20
+#define DINDT_PUSH_SCAN_DELAY (BUTTON_SCAN_DELAY * BUTTONS_NUMBER)
 
 /* === Private data type declarations ============================================================================== */
 
@@ -74,6 +75,30 @@ void ButtonTask(void * pointer) {
         }
 
         vTaskDelayUntil(&last_value, pdMS_TO_TICKS(BUTTON_SCAN_DELAY));
+    }
+}
+
+void DidntPushTask(void * pointer) {
+    didnt_press_task_arg_p args = pointer;
+    EventBits_t events;
+    TickType_t last_value;
+    args->counter = 0;
+
+    while (1) {
+        last_value = xTaskGetTickCount();
+        events = xEventGroupWaitBits(args->event_group, args->buttons, pdFALSE, pdFALSE,
+                                     pdMS_TO_TICKS(DINDT_PUSH_SCAN_DELAY));
+        if (events & args->buttons) {
+            args->counter = 0;
+        } else {
+            if (args->counter < (args->time_ms / DINDT_PUSH_SCAN_DELAY)) {
+                args->counter++;
+                if (args->counter == (args->time_ms / DINDT_PUSH_SCAN_DELAY)) {
+                    xEventGroupSetBits(args->event_group, DIDNT_PRESS_EVENT);
+                    args->counter = 0;
+                }
+            }
+        }
     }
 }
 
