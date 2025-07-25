@@ -214,6 +214,7 @@ int main(void) {
         state_args->buzzer = shield->buzzer;
         state_args->display = shield->display;
         state_args->clock = clock;
+        state_args->clock_mutex = clock_mutex;
         result = xTaskCreate(StateTask, "States", STATE_TASK_STACK_SIZE, state_args, tskIDLE_PRIORITY + 3, NULL);
     }
     if (result == pdPASS) {

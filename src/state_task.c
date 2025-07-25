@@ -50,7 +50,7 @@ static void ChangeState(state_task_arg_p args, states_e new_state);
  * @param limits_array array con los limites maximos del número
  * @param size tamaño de los array
  */
-static void IncrementControl(uint8_t * array, uint8_t * array_limits, int size);
+static void IncrementControl(int * array, int * array_limits, int size);
 
 /**
  * @brief Funcion para decrementar los digitos de un númeroo en formato array cada vez que es llamada y realiza el
@@ -62,7 +62,7 @@ static void IncrementControl(uint8_t * array, uint8_t * array_limits, int size);
  * @param limits_array array con los limites maximos del número
  * @param size tamaño de los array
  */
-static void DecrementControl(uint8_t * array, uint8_t * array_limits, int size);
+static void DecrementControl(int * array, int * array_limits, int size);
 
 /* === Private variable definitions ================================================================================ */
 
@@ -135,7 +135,7 @@ static void ChangeState(state_task_arg_p args, states_e new_state) {
     xSemaphoreGive(args->display_mutex);
 }
 
-static void IncrementControl(uint8_t * array, uint8_t * array_limits, int size) {
+static void IncrementControl(int * array, int * array_limits, int size) {
     bool increment = false;
 
     for (int i = 0; i < size; i++) {
@@ -161,7 +161,7 @@ static void IncrementControl(uint8_t * array, uint8_t * array_limits, int size) 
     }
 }
 
-static void DecrementControl(uint8_t * array, uint8_t * array_limits, int size) {
+static void DecrementControl(int * array, int * array_limits, int size) {
     bool decrement = false;
 
     for (int i = 0; i < size; i++) {
@@ -188,7 +188,10 @@ static void DecrementControl(uint8_t * array, uint8_t * array_limits, int size) 
 }
 
 static void CanceledAdjustTime(state_task_arg_p args) {
-    if (ClockGetTime(args->clock, &args->new_time)) {
+    xSemaphoreTake(args->clock_mutex, portMAX_DELAY);
+    int valid = ClockGetTime(args->clock, &args->new_time);
+    xSemaphoreGive(args->clock_mutex);
+    if (valid) {
         ChangeState(args, valid_time);
     } else {
         ChangeState(args, invalid_time);
@@ -201,8 +204,8 @@ void StateTask(void * pointer) {
     state_task_arg_p args = pointer;
     EventBits_t events;
     ChangeState(args, invalid_time);
-    uint8_t minutes_limit[2] = {0, 6};
-    uint8_t hours_limit[2] = {4, 2};
+    int minutes_limit[2] = {9, 5};
+    int hours_limit[2] = {3, 2};
 
     while (1) {
         //! espero un evento ¿Que passa si llegan 2 eventos? ademas events no es propia de la tarea hay reentrancia
@@ -212,15 +215,22 @@ void StateTask(void * pointer) {
         case invalid_time:
             if (events & HOLD_SET_TIME_EVENT) {
                 ChangeState(args, adjust_time_minutes);
+
+                xSemaphoreTake(args->clock_mutex, portMAX_DELAY);
                 ClockGetTime(args->clock, &args->new_time);
+                xSemaphoreGive(args->clock_mutex);
             }
             break;
         case valid_time:
             if (events & HOLD_SET_TIME_EVENT) {
                 ChangeState(args, adjust_time_minutes);
+
+                xSemaphoreTake(args->clock_mutex, portMAX_DELAY);
                 ClockGetTime(args->clock, &args->new_time);
+                xSemaphoreGive(args->clock_mutex);
             } else if (events & HOLD_SET_ALARM_EVENT) {
                 ChangeState(args, adjust_alarm_minutes);
+                // esta funcion no usa nada que sea usado por otra tarea, por eso no se protege
                 ClockGetAlarm(args->clock, &args->new_time);
                 args->new_time.bcd[0] = 0; // Para que los segundos no afecten la alarma
                 args->new_time.bcd[1] = 0; // Para que los segundos no afecten la alarma
@@ -229,25 +239,34 @@ void StateTask(void * pointer) {
                 DisplayWriteBCD(args->display, &args->new_time.bcd[2], sizeof(args->new_time.bcd));
                 xSemaphoreGive(args->display_mutex);
 
-            } else if (ClockIsAlarmRinging(args->clock)) {
-                if (events & CANCEL_EVENT) {
-                    ClockTurnOffAlarm(args->clock);
-                    ChangeState(args, valid_time);
-                } else if (events & ACCEPT_EVENT) {
-                    ClockSnoozeAlarm(args->clock);
-                    ChangeState(args, valid_time);
-                }
-                ChangeState(args, valid_time); // para activar el punto del 1er digito
-            } else if (ClockGetAlarm(args->clock, &args->new_time)) {
-                if (!ClockIsAlarmSnoozed(args->clock)) {
-                    if (events & ACCEPT_EVENT) {
-                        ClockSetAlarmState(args->clock, true);
+            } else {
+                xSemaphoreTake(args->clock_mutex, portMAX_DELAY);
+                if (ClockIsAlarmRinging(args->clock)) {
+                    if (events & CANCEL_EVENT) {
+                        ClockTurnOffAlarm(args->clock);
+                        xSemaphoreGive(args->clock_mutex);
                         ChangeState(args, valid_time);
-                    } else if (events & CANCEL_EVENT) {
-                        ClockSetAlarmState(args->clock, false);
+                    } else if (events & ACCEPT_EVENT) {
+                        ClockSnoozeAlarm(args->clock);
+                        xSemaphoreGive(args->clock_mutex);
                         ChangeState(args, valid_time);
                     }
+                    ChangeState(args, valid_time); // para activar el punto del 1er digito
+                } else if (ClockGetAlarm(args->clock, &args->new_time)) {
+                    if (!ClockIsAlarmSnoozed(args->clock)) {
+                        if (events & ACCEPT_EVENT) {
+                            ClockSetAlarmState(args->clock, true);
+                            xSemaphoreGive(args->clock_mutex);
+                            ChangeState(args, valid_time);
+                        } else if (events & CANCEL_EVENT) {
+                            ClockSetAlarmState(args->clock, false);
+                            xSemaphoreGive(args->clock_mutex);
+                            ChangeState(args, valid_time);
+                        }
+                        xSemaphoreGive(args->clock_mutex);
+                    }
                 }
+                xSemaphoreGive(args->clock_mutex);
             }
 
             break;
