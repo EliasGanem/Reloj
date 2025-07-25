@@ -81,11 +81,9 @@ void ButtonTask(void * pointer) {
 void DidntPushTask(void * pointer) {
     didnt_press_task_arg_p args = pointer;
     EventBits_t events;
-    TickType_t last_value;
     args->counter = 0;
 
     while (1) {
-        last_value = xTaskGetTickCount();
         events = xEventGroupWaitBits(args->event_group, args->buttons, pdFALSE, pdFALSE,
                                      pdMS_TO_TICKS(DINDT_PUSH_SCAN_DELAY));
         if (events & args->buttons) {

@@ -50,7 +50,7 @@ static void ChangeState(state_task_arg_p args, states_e new_state);
  * @param limits_array array con los limites maximos del número
  * @param size tamaño de los array
  */
-static void IncrementControl(int * array, int * array_limits, int size);
+static void IncrementControl(uint8_t * array, uint8_t * array_limits, int size);
 
 /**
  * @brief Funcion para decrementar los digitos de un númeroo en formato array cada vez que es llamada y realiza el
@@ -62,7 +62,7 @@ static void IncrementControl(int * array, int * array_limits, int size);
  * @param limits_array array con los limites maximos del número
  * @param size tamaño de los array
  */
-static void DecrementControl(int * array, int * array_limits, int size);
+static void DecrementControl(uint8_t * array, uint8_t * array_limits, int size);
 
 /* === Private variable definitions ================================================================================ */
 
@@ -135,7 +135,7 @@ static void ChangeState(state_task_arg_p args, states_e new_state) {
     xSemaphoreGive(args->display_mutex);
 }
 
-static void IncrementControl(int * array, int * array_limits, int size) {
+static void IncrementControl(uint8_t * array, uint8_t * array_limits, int size) {
     bool increment = false;
 
     for (int i = 0; i < size; i++) {
@@ -146,7 +146,7 @@ static void IncrementControl(int * array, int * array_limits, int size) {
 
     if (increment) {
         for (int i = 0; i < size; i++) {
-            if (array[i] < 9) {
+            if (array[i] < (uint8_t)9) {
                 array[i]++;
                 for (int j = 0; j < i; j++) {
                     array[j] = 0;
@@ -161,7 +161,7 @@ static void IncrementControl(int * array, int * array_limits, int size) {
     }
 }
 
-static void DecrementControl(int * array, int * array_limits, int size) {
+static void DecrementControl(uint8_t * array, uint8_t * array_limits, int size) {
     bool decrement = false;
 
     for (int i = 0; i < size; i++) {
@@ -172,7 +172,7 @@ static void DecrementControl(int * array, int * array_limits, int size) {
 
     if (decrement) {
         for (int i = 0; i < size; i++) {
-            if (array[i] > 0) {
+            if (array[i] > (uint8_t)0) {
                 array[i]--;
                 for (int j = 0; j < i; j++) {
                     array[j] = 9;
@@ -204,8 +204,8 @@ void StateTask(void * pointer) {
     state_task_arg_p args = pointer;
     EventBits_t events;
     ChangeState(args, invalid_time);
-    int minutes_limit[2] = {9, 5};
-    int hours_limit[2] = {3, 2};
+    uint8_t minutes_limit[2] = {9, 5};
+    uint8_t hours_limit[2] = {3, 2};
 
     while (1) {
         //! espero un evento ¿Que passa si llegan 2 eventos? ademas events no es propia de la tarea hay reentrancia

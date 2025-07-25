@@ -229,7 +229,7 @@ shield_p ShieldCreate(void) {
     // BoardSetup();
     SystemCoreClockUpdate();
 
-#ifdef SHIELD_MAX_INSTANCE
+#ifdef USE_DYNAMIC_MEMORY
     self = malloc(sizeof(struct shield_s));
 #else
     self = CreateInstance();
