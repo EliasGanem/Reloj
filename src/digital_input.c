@@ -18,7 +18,7 @@ SPDX-License-Identifier: MIT
 *********************************************************************************************************************/
 
 /** @file digital_input.c
- ** @brief Codigo duente del modulo de entradas digitales para el proyecto reloj - Electrónica 4 2025
+ ** @brief Codigo fuente del modulo de entradas digitales para el proyecto reloj - Electrónica 4 2025
  **/
 
 /* === Headers files inclusions ==================================================================================== */
