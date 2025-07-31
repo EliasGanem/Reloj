@@ -51,7 +51,7 @@
 /* === Macros definitions ====================================================================== */
 
 #ifndef TIME_TO_HOLD_TO_CHANGE_STATE_MS
-#define TIME_TO_HOLD_TO_CHANGE_STATE_MS 300
+#define TIME_TO_HOLD_TO_CHANGE_STATE_MS 3000
 #endif
 
 /* === Private data type declarations ========================================================== */

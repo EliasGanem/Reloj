@@ -155,9 +155,9 @@ static void DecrementControl(uint8_t * array, uint8_t * array_limits, int size) 
 
 static bool KeepedHoldButton(check_button_hold_p check_values) {
     bool result = 0;
-    if (DigitalInputGetIsActive(check_values->button) && check_values->counter < check_values->time_to_hold) {
+    if (DigitalInputGetIsActive(check_values->button) && check_values->counter < (check_values->time_to_hold / 15)) {
         check_values->counter++;
-        if (check_values->counter == check_values->time_to_hold) {
+        if (check_values->counter == (check_values->time_to_hold / 15)) { // time to hold / 15ms
             check_values->counter = 0;
             result = 1;
         }
@@ -181,7 +181,7 @@ static bool Passed30s(void) {
     bool result = false;
 
     aux_30s++;
-    if (aux_30s == 3000) {
+    if (aux_30s == 2000) { // 30000ms / 15ms
         result = true;
     }
 

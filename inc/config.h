@@ -5,4 +5,4 @@
 
 #define SHIELD_MAX_INSTANCE             1
 #define DISPLAY_MAX_DIGITS              4
-#define TIME_TO_HOLD_TO_CHANGE_STATE_MS 300
+#define TIME_TO_HOLD_TO_CHANGE_STATE_MS 3000
